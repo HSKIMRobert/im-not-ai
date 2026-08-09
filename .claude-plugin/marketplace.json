@@ -5,15 +5,15 @@
   },
   "metadata": {
     "description": "AI가 쓴 한글 텍스트를 사람이 쓴 글처럼 윤문하는 humanize-korean 스킬 마켓플레이스",
-    "version": "2.1.0",
+    "version": "2.3.0",
     "pluginRoot": "."
   },
   "plugins": [
     {
       "name": "humanize-korean",
       "source": "./",
-      "description": "AI가 쓴 한글 텍스트를 사람이 쓴 글처럼 윤문하는 오케스트레이터 스킬 + 서브에이전트 묶음 (Fast + strict).",
-      "version": "2.1.0",
+      "description": "Claude Code용 3경로 오케스트레이터와 GitHub Copilot CLI·Codex용 단일 호출 경로를 제공하는 한글 윤문 플러그인.",
+      "version": "2.3.0",
       "keywords": ["korean", "humanize", "ai-detector", "윤문", "번역투"]
     }
   ]
