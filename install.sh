@@ -14,7 +14,14 @@ DO_CODEX=auto
 DO_GEMINI=auto
 FORCE=0
 DRYRUN=0
+ALL_AGENTS=0
 TS="$(date +%Y%m%d-%H%M%S)"
+
+# 스킬 런타임이 호출하는 3종 + 별도 명령으로만 트리거되는 유지보수 1종.
+# agents/ 의 나머지(릴리스 회차용 개발 도구)는 --all-agents 일 때만 설치한다 —
+# 서브에이전트는 description 매칭으로 자동 라우팅되므로, 윤문과 무관한 정의가
+# 전역 풀에 상주하면 다른 작업에서 잘못 호출될 수 있다.
+INSTALLED_AGENTS="humanize-monolith humanize-diagnostician humanize-finalizer korean-ai-tell-taxonomist"
 
 print_help() {
   cat <<'H'
@@ -32,6 +39,9 @@ Options:
   --codex-only    Codex만 설치 시도(codex 명령 또는 ~/.codex 감지 시)
   --gemini-only   Gemini만 설치
   --no-gemini     Gemini 건너뜀 (claude/codex만)
+  --all-agents    agents/ 전체를 전역 설치(개발용 1회성 정의 포함).
+                  기본은 스킬이 실제로 쓰는 4종만 — 런타임 3(monolith·
+                  diagnostician·finalizer) + 유지보수 1(taxonomist).
   --force         대상에 일반 파일/디렉토리가 있어도 .bak.<ts> 백업 후 덮어씀
   --dry-run       실제 변경 없이 수행할 작업만 출력
   -h, --help      이 도움말
@@ -47,6 +57,7 @@ while [ $# -gt 0 ]; do
     --codex-only) DO_CLAUDE=no; DO_GEMINI=no ;;
     --gemini-only) DO_CLAUDE=no; DO_CODEX=no; DO_GEMINI=yes ;;
     --no-gemini) DO_GEMINI=no ;;
+    --all-agents) ALL_AGENTS=1 ;;
     --force) FORCE=1 ;;
     --dry-run) DRYRUN=1 ;;
     -h|--help) print_help; exit 0 ;;
@@ -99,9 +110,28 @@ if [ "$DO_CLAUDE" != no ] && { [ "$DO_CLAUDE" = yes ] || has_claude_target; }; t
   for s in humanize-korean humanize humanize-redo; do
     install_one "$REPO/.claude/skills/$s" "$CLAUDE_HOME/skills/$s"
   done
-  for a in "$REPO/agents"/*.md; do
-    install_one "$a" "$CLAUDE_HOME/agents/$(basename "$a")"
-  done
+  agents=()
+  if [ "$ALL_AGENTS" = 1 ]; then
+    for a in "$REPO/agents"/*.md; do
+      if [ -e "$a" ]; then agents[${#agents[@]}]="$a"; fi
+    done
+  else
+    for n in $INSTALLED_AGENTS; do
+      if [ -f "$REPO/agents/$n.md" ]; then
+        agents[${#agents[@]}]="$REPO/agents/$n.md"
+      else
+        echo "warn: agents/$n.md 를 찾지 못해 건너뜀" >&2
+      fi
+    done
+  fi
+  if [ "${#agents[@]}" -gt 0 ]; then
+    for a in "${agents[@]}"; do
+      install_one "$a" "$CLAUDE_HOME/agents/$(basename "$a")"
+    done
+  fi
+  if [ "$ALL_AGENTS" != 1 ]; then
+    echo "note: 릴리스 회차용 개발 에이전트는 설치하지 않음 (전체 설치는 --all-agents)"
+  fi
 else
   echo "== Claude Code: 건너뜀 (claude 또는 $CLAUDE_HOME 미감지) =="
 fi
