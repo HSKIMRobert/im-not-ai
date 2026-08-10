@@ -21,6 +21,26 @@ with open(os.path.join(_HERE, "fixtures.json"), encoding="utf-8") as _f:
     _MANIFEST = json.load(_f)
 
 
+class ManifestIntegrityTests(unittest.TestCase):
+    """fixtures.json 자체의 무결성 — 판정 이전에 fixture가 말이 되는지 본다."""
+
+    def test_protected_tokens_exist_in_input(self) -> None:
+        """보호 토큰은 원문에 실재해야 한다.
+
+        원문에 없는 문자열을 protected_tokens에 넣으면 "의미 불변" 검사가
+        "참조 윤문본의 특정 의역을 재현하라"는 요구로 바뀐다. 얼린 output_text로
+        도는 계층2는 통과하지만, 매번 새로 윤문하는 계층3(live)이 그 자리에서
+        깨진다.
+        """
+        for fx in _MANIFEST["fixtures"]:
+            with self.subTest(fixture=fx["id"]):
+                src = fx["input_text"]
+                absent = [t for t in fx.get("protected_tokens", []) if t not in src]
+                self.assertEqual(
+                    absent, [], f"[{fx['id']}] input_text에 없는 보호 토큰: {absent}"
+                )
+
+
 class HumanizeE2ETests(unittest.TestCase):
     def test_fixtures_with_outputs(self) -> None:
         processed = 0
