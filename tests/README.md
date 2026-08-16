@@ -22,11 +22,12 @@ LLM 기반 윤문 스킬은 출력이 비결정적이라 "골든 출력 문자�
 ```
 cd tests
 python3 -m unittest test_humanize_asserts test_humanize_e2e          # 오프라인, 빠름 (claude 무)
-python3 -m unittest test_humanize_live                              # 살아있는 스킬 (claude 필요, 느림)
+python3 -m unittest test_humanize_live                              # 살아있는 스킬 (fixture당 기본 3회, 느림)
 HUMANIZE_LIVE_IDS=fx_b_heavy python3 -m unittest test_humanize_live  # 부분 실행
-HUMANIZE_LIVE_K=3 python3 -m unittest test_humanize_live            # 반복(flaky 탐지)
+HUMANIZE_LIVE_K=1 python3 -m unittest test_humanize_live            # 빠른 단발 확인
 ```
-계층3은 `claude` CLI 없으면 자동 skip → 크레덴셜 없는 CI에서도 안전.
+계층3은 기본적으로 fixture마다 3회 실행해 비결정적 회귀를 탐지한다. `claude` CLI가
+없으면 자동 skip → 크레덴셜 없는 CI에서도 안전.
 
 ## 판정 차원
 
