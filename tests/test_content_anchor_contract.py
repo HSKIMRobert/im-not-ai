@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import os
 import subprocess
 import unittest
@@ -57,14 +58,19 @@ class ContentAnchorContractTests(unittest.TestCase):
             ),
         ]
 
-        result = humanize_runner.run_humanize(
-            original,
-            protected_tokens=["패러다임"],
-            max_change_rate=0.10,
-        )
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as stderr:
+            result = humanize_runner.run_humanize(
+                original,
+                protected_tokens=["패러다임"],
+                max_change_rate=0.10,
+            )
 
         self.assertEqual(result, original)
         self.assertEqual(run.call_count, 2)
+        retry_log = stderr.getvalue()
+        self.assertIn("retry 1/1 after gate violation", retry_log)
+        self.assertIn("보호 토큰 유실", retry_log)
+        self.assertIn("변경률", retry_log)
         retry_prompt = run.call_args_list[1].args[0][2]
         self.assertIn("직전 시도는", retry_prompt)
         self.assertIn("보호 토큰 유실", retry_prompt)

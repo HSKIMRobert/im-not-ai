@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from collections.abc import Sequence
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -107,5 +108,10 @@ def run_humanize(
         if not violations or attempt == 1:
             return result
         retry_reason = ", ".join(violations)
+        print(
+            f"[humanize-live] retry 1/1 after gate violation: {retry_reason}",
+            file=sys.stderr,
+            flush=True,
+        )
 
     return result
