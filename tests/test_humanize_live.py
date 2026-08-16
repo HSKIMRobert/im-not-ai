@@ -5,8 +5,8 @@
 
 - `claude` CLI 없으면 전체 skip → 바닐라 CI(크레덴셜 없음)에서도 안전.
 - 비결정적 출력이라 문자열 정답 비교 대신 **하드 불변식·변경률 상한·시그널 델타**만 단언.
-- 느림(호출당 수십 초). 기본 fixture당 1회.
-    - HUMANIZE_LIVE_K=3      반복 실행(과반 판정 대신 전원 통과 요구, flaky 탐지)
+- 느림(호출당 수십 초). 기본 fixture당 3회(전원 통과 요구).
+    - HUMANIZE_LIVE_K=1      빠른 단발 확인이 필요할 때만 반복 수를 낮춤
     - HUMANIZE_LIVE_IDS=fx_b_heavy,fx_pat_c11_ending_comma   부분 실행(빠른 검증)
 
 실행: python3 -m unittest test_humanize_live
@@ -27,7 +27,7 @@ with open(os.path.join(_HERE, "fixtures.json"), encoding="utf-8") as _f:
     _FIXTURES = json.load(_f)["fixtures"]
 
 _ONLY = {s for s in os.environ.get("HUMANIZE_LIVE_IDS", "").split(",") if s}
-_K = int(os.environ.get("HUMANIZE_LIVE_K", "1"))
+_K = int(os.environ.get("HUMANIZE_LIVE_K", "3"))
 
 
 @unittest.skipIf(hr.CLAUDE_BIN is None, "claude CLI 없음 — live 통합 테스트 skip")
@@ -56,7 +56,12 @@ class HumanizeLiveTests(unittest.TestCase):
         for fx in targets:
             for i in range(_K):
                 with self.subTest(fixture=fx["id"], run=i):
-                    out = hr.run_humanize(fx["input_text"], strict=False)
+                    out = hr.run_humanize(
+                        fx["input_text"],
+                        strict=False,
+                        protected_tokens=fx.get("protected_tokens", []),
+                        max_change_rate=(fx.get("change_rate") or {}).get("max", 0.50),
+                    )
                     self._assert_output(fx, out)
 
 

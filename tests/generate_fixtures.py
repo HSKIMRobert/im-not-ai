@@ -49,7 +49,12 @@ def main(argv: list[str] | None = None) -> int:
         if not args.ids and not args.all and fx.get("output_text"):
             continue  # 기본: null 만
         try:
-            out = hr.run_humanize(fx["input_text"], strict=args.strict)
+            out = hr.run_humanize(
+                fx["input_text"],
+                strict=args.strict,
+                protected_tokens=fx.get("protected_tokens", []),
+                max_change_rate=(fx.get("change_rate") or {}).get("max", 0.50),
+            )
         except hr.SkillUnavailable as exc:
             print(f"[{fid}] 실패: {exc}", file=sys.stderr)
             continue
