@@ -36,7 +36,9 @@ cd im-not-ai
 ./install.sh --claude-only
 ```
 
-`~/.claude/skills/`에 스킬 3개, `~/.claude/agents/`에 에이전트 9개를 **심링크**합니다(저장소를 수정하면 즉시 반영). 새 세션에서 `/humanize-korean`.
+`~/.claude/skills/`에 스킬 3개, `~/.claude/agents/`에 **스킬이 실제로 쓰는 에이전트 4개**(런타임 3 — monolith·diagnostician·finalizer, 유지보수 1 — taxonomist)를 **심링크**합니다(저장소를 수정하면 즉시 반영). 새 세션에서 `/humanize-korean`.
+
+`agents/`의 나머지 5개는 릴리스 회차용 개발 도구라 기본 설치에서 제외합니다 — 서브에이전트는 description 매칭으로 자동 라우팅되므로, 윤문과 무관한 정의가 전역 풀에 상주하면 다른 작업에서 잘못 호출될 수 있습니다. 레포 기여자처럼 전부 필요하면 `./install.sh --all-agents`.
 
 ---
 
