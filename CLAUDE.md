@@ -21,6 +21,20 @@ v2.2부터 shim이 정량 점수로 산출하는 **`route_hint`(light | standard
 5. **register 보존 — 양방향** — 격식체 입력은 격식체 출력, 구어 입력은 구어 출력. 원문보다 딱딱하게 만들지 않는다: **'-했-' → '-하였-' 치환 금지**, '~인데요/~거든요/~한 겁니다' 구어 종결 보존. (하향 금지만 있던 기존 단방향 규칙으로는 합쇼체가 유지되는 '했→하였' 상향을 못 잡았다.) AI 티는 문법·수사이지 격식 자체가 아니다.
 6. **AI 티는 빼기만 하고 넣지 않는다 (No New Tells)** — 원문에 없던 상투구("기록적인 성과를 거두었다"·"괄목할 만한"·"~로 평가된다") 신규 삽입 금지. 살아있는 구어는 사람 글의 증거이므로 보존한다. 철칙 #2가 "탐지 없는 구간은 손대지 않는다"라면, #6은 "손대는 구간에도 새 AI 티를 심지 않는다" — 모순이 아니라 보완이다.
 
+## AI 워터마킹에 대한 입장 (2026-08-17 확정)
+
+**배경.** Anthropic 은 2026-08-11 텍스트 워터마킹 도입을 발표했다. 방식은 Google DeepMind 의 **SynthID-Text** — 단어를 바꿔 심는 게 아니라, 동등하게 좋은 후보들 사이에서 뽑는 **난수의 출처**를 키 기반 결정값으로 바꾼다. EU AI Act 투명성 의무 대응이며 적용은 전 세계 동일. 2026-08-02 이후 출시 모델부터 적용되고, 그 이전 모델(Sonnet 5 = 6/30, Opus 5 = 7/24)에는 수개월에 걸쳐 소급 적용 중이다. **탐지 API 는 아직 공개되지 않았다.**
+
+**결정: 워터마크 제거 기능은 탑재하지 않는다.**
+
+1. **측정할 수 없다.** 탐지기가 없으므로 "지워졌는지"를 확인할 방법이 없다. 검증 없이 제거를 시도하면 맹목적으로 단어를 흔드는 것이고, 그건 이 프로젝트가 존재하는 이유(자연스러운 한국어)와 정면으로 충돌한다. 확실한 품질 손실을 지불하고 검증 불가능한 이득을 사는 거래다.
+2. **투명성 장치 우회다.** EU AI Act 가 요구하는 출처 표시를 무력화하는 기능이다.
+3. **선은 분명하다.** 어색한 한국어를 자연스럽게 고치는 편집이 부수적으로 통계 신호를 흐트러뜨리는 것은 이 프로젝트의 정상 동작이다. Anthropic 도 "전면 재작성이면 지워지고, 그 시점엔 AI 생성물이라 부를 수 있는지 자체가 논쟁적"이라고 인정했다. 금지되는 것은 그것을 **표적 기능으로 만들어 그렇게 광고하는 것**이다.
+
+**따라서 `scripts/sanitize_text.py` 는 워터마크와 무관하다.** 제로폭 문자·특수 공백·NFD 분해 한글을 정리하는 텍스트 위생 도구일 뿐이며, SynthID 는 문자가 아니라 통계 패턴에 실리므로 문자 제거로는 애초에 건드릴 수 없다. 문서·UI 어디에서도 이 기능을 워터마크 제거로 표기하지 않는다.
+
+**대신 하는 일: 계측.** 워터마킹이 한국어 품질에 실제로 영향을 주는지는 추측이 아니라 측정으로 답한다. `scripts/eval_baseline.py` 로 소급 적용 이전 지문을 떠 두고, 적용 이후 재촬영해 `scripts/eval_compare.py` 로 대조한다. 대조는 K회 반복의 자체 표준편차를 잡음 바닥으로 삼아 그걸 넘는 변화만 유의하다고 표시한다 (n=1 룰렛 금지).
+
 ## 디렉토리 구조
 
 ```
@@ -37,14 +51,17 @@ im-not-ai/
 ├── commands/                      # Gemini CLI 커스텀 명령 (/humanize-korean, /humanize, /humanize-redo)
 ├── install.sh / uninstall.sh / update.sh   # Claude·Codex·Gemini 전역 설치/제거 (심링크 기본)
 ├── scripts/
-│   ├── prepare_monolith_input.py  # input shim — 정량 점수 + route_hint 산출 + 결합 입력 (`--diagnosis`·`--chunk` 지원)
+│   ├── prepare_monolith_input.py  # input shim — 텍스트 위생 + 정량 점수 + route_hint 산출 + 결합 입력 (`--diagnosis`·`--chunk`·`--no-sanitize`)
+│   ├── sanitize_text.py           # 텍스트 위생 — 제로폭·bidi·특수공백 제거 + 한글 NFD→NFC (결정적, LLM 0콜)
+│   ├── eval_baseline.py           # 품질 기준선 촬영 — 픽스처 × 모델 × K회 반복 스냅샷
+│   ├── eval_compare.py            # 스냅샷 2개 대조 — 자체 분산을 잡음 바닥 삼아 유의한 변화만 표시
 │   ├── reassemble_chunks.py       # 장문 청킹 재조립 (passthrough 원문 삽입 + 문자수 대사)
 │   ├── verify_change_rate.py      # 변경률 게이트 — 철칙 #4의 결정적 판정 (exit code)
 │   ├── build_quick_rules.py       # taxonomy quick 메타 → quick-rules.md 빌드 (ID 드리프트 차단)
 │   ├── build_social_preview_v2.py
 │   └── make_thumbnail.py
 ├── tests/                         # pytest — metrics 단위 + 청킹 + 빌드 sync + golden 픽스처
-│   ├── test_metrics.py · test_metrics_v2.py · test_chunking.py · test_quick_rules_build.py
+│   ├── test_metrics.py · test_metrics_v2.py · test_chunking.py · test_quick_rules_build.py · test_sanitize.py
 │   └── golden/                    # 윤문 품질 회귀 픽스처 + 결정적 채점기(checks.py)
 ├── agents/                        # 서브에이전트 9종 (플러그인 컨벤션 — 루트 agents/에 둬야 로드됨)
 │   ├── humanize-monolith.md       # 전 경로 공용 윤문 콜
