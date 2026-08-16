@@ -260,8 +260,11 @@ def main(argv: list[str] | None = None) -> int:
         "records": records,
     }
 
+    # 기본 저장 위치는 **git 이 추적하는** tests/baselines/ 다.
+    # _workspace/ 는 .gitignore 대상이라, 몇 달 뒤 대조해야 할 스냅샷을 거기 두면
+    # 이 기계에서만 존재하다 사라진다. 기준선은 레포에 남아야 의미가 있다.
     out_path = Path(a.out) if a.out else (
-        _ROOT / "_workspace" / "baselines" / f"{datetime.now().strftime('%Y-%m-%d')}-{a.label}.json"
+        _ROOT / "tests" / "baselines" / f"{datetime.now().strftime('%Y-%m-%d')}-{a.label}.json"
     )
     if not out_path.is_absolute():
         out_path = _ROOT / out_path

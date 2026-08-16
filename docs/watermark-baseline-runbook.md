@@ -34,15 +34,15 @@
 cd ~/humanize-ko
 
 # 1) 이전 스냅샷 확인
-ls _workspace/baselines/
+ls tests/baselines/
 
 # 2) 같은 조건으로 재촬영 — 모델·K·픽스처가 같아야 비교가 성립한다
 python3 scripts/eval_baseline.py --k 3 --label post-watermark
 
 # 3) 대조
 python3 scripts/eval_compare.py \
-    _workspace/baselines/2026-08-17-pre-watermark.json \
-    _workspace/baselines/<새로 생긴 파일>.json
+    tests/baselines/2026-08-17-pre-watermark.json \
+    tests/baselines/<새로 생긴 파일>.json
 ```
 
 ### 조건을 바꾸지 말 것
