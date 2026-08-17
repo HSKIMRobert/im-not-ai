@@ -27,7 +27,7 @@ pytest tests/test_golden.py
 python3 -m unittest tests.test_golden
 
 # 채점기 단독 — 실제 윤문 결과를 게이트에 통과시킬 때
-python3 tests/golden/checks.py fixtures/01_register_downgrade/input.txt <윤문결과.txt>
+python3 scripts/checks.py fixtures/01_register_downgrade/input.txt <윤문결과.txt>
 ```
 
 CI에서는 LLM을 부를 수 없으므로 자동 테스트는 **채점기 자체**를 양방향으로 검증합니다
