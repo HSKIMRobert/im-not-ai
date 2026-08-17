@@ -99,6 +99,43 @@ def _resolve_run_dir(run_dir_arg: str | None, text_arg: str | None) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# 텍스트 위생 — 보이지 않는 오염 문자 정리 (결정적, LLM 콜 0회)
+# ---------------------------------------------------------------------------
+#
+# 왜 shim 에서 하는가: 01_input.txt 가 이후 모든 단계의 기준선이기 때문이다.
+# 특히 macOS 경유 텍스트의 NFD 분해 한글은 눈에 안 보이지만 치명적이다 —
+# 윤문 결과는 NFC 로 나오므로 변경률 게이트(철칙 #4)가 "전 글자 변경"으로 읽고
+# 50% 초과 강제 중단에 걸린다. 여기서 한 번 정규화해 두면 게이트·diff·글자수가
+# 전부 같은 기준을 쓰게 된다.
+#
+# 이 처리는 AI 워터마크와 무관하다 (scripts/sanitize_text.py 상단 주석 참조).
+
+try:
+    import sanitize_text as _sanitize_mod
+except Exception:  # noqa: BLE001 — 위생 처리 실패는 파이프라인을 막지 않는다.
+    _sanitize_mod = None
+
+
+def _load_input(input_path: Path, run_dir: Path, enabled: bool) -> str:
+    """01_input.txt 를 읽고, 켜져 있으면 위생 처리해 제자리에 반영한다."""
+    text = input_path.read_text(encoding="utf-8")
+    if not enabled or _sanitize_mod is None:
+        return text
+    try:
+        cleaned, report = _sanitize_mod.sanitize(text)
+    except Exception:  # noqa: BLE001 — graceful degrade.
+        return text
+    if report.changed:
+        input_path.write_text(cleaned, encoding="utf-8")
+        (run_dir / "00_sanitize.json").write_text(
+            json.dumps(report.to_dict(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"sanitize={report.summary}")
+    return cleaned if report.changed else text
+
+
+# ---------------------------------------------------------------------------
 # Route hint — shim이 "손댈 양"을 판정해 경로를 권고한다
 # ---------------------------------------------------------------------------
 #
@@ -610,7 +647,7 @@ def run_chunk_mode(args: argparse.Namespace, diagnosis: str | None) -> int:
         input_path.write_text(args.text, encoding="utf-8")
     if not input_path.exists():
         raise SystemExit(f"01_input.txt not found in {run_dir}; pass --text to create")
-    text = input_path.read_text(encoding="utf-8")
+    text = _load_input(input_path, run_dir, not args.no_sanitize)
     if not text.strip():
         raise SystemExit("01_input.txt is empty; nothing to chunk")
 
@@ -770,6 +807,13 @@ def main(argv: list[str] | None = None) -> int:
         help="장문 청킹 모드: 01_input.txt 를 손실 없이 분할해 청크별 "
         "input_with_metrics 파일과 chunk_manifest.json 을 만든다.",
     )
+    p.add_argument(
+        "--no-sanitize",
+        action="store_true",
+        help="텍스트 위생 처리를 끈다. 기본은 켜짐 — 제로폭·특수공백·NFD 분해 한글 등 "
+        "보이지 않는 오염을 01_input.txt 에 반영해 이후 게이트·diff 기준을 통일한다. "
+        "(AI 워터마크와 무관 — scripts/sanitize_text.py 참조)",
+    )
     args = p.parse_args(argv)
 
     diagnosis: str | None = None
@@ -793,7 +837,7 @@ def main(argv: list[str] | None = None) -> int:
     if not input_path.exists():
         raise SystemExit(f"01_input.txt not found in {run_dir}; pass --text to create")
 
-    text = input_path.read_text(encoding="utf-8")
+    text = _load_input(input_path, run_dir, not args.no_sanitize)
 
     metrics_obj: dict | None = None
     metrics_path = run_dir / "00_metrics.json"

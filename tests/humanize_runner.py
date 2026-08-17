@@ -33,13 +33,23 @@ def _prompt(text: str, strict: bool) -> str:
     )
 
 
-def run_humanize(text: str, *, strict: bool = False, timeout: int = 300) -> str:
-    """스킬을 실제 호출해 윤문본을 반환. 실패 시 SkillUnavailable."""
+def run_humanize(
+    text: str, *, strict: bool = False, timeout: int = 300, model: str | None = None
+) -> str:
+    """스킬을 실제 호출해 윤문본을 반환. 실패 시 SkillUnavailable.
+
+    model: `claude --model` 로 넘길 모델 ID(예: "claude-sonnet-5").
+           None 이면 CLI 기본 모델. 모델 간 품질 비교(scripts/eval_baseline.py)에 쓴다.
+    """
     if not CLAUDE_BIN:
         raise SkillUnavailable("`claude` CLI를 찾을 수 없음 (Claude Code 설치 필요)")
+    cmd = [CLAUDE_BIN]
+    if model:
+        cmd += ["--model", model]
+    cmd += ["-p", _prompt(text, strict)]
     try:
         proc = subprocess.run(
-            [CLAUDE_BIN, "-p", _prompt(text, strict)],
+            cmd,
             cwd=_REPO_ROOT,
             stdin=subprocess.DEVNULL,
             capture_output=True,

@@ -251,6 +251,7 @@ exit code로 분기한다 (0/1/2/3 의미는 기존 게이트와 동일):
 - 슬림 룰북 (monolith 전용): [`references/quick-rules.md`](references/quick-rules.md) — S1·S2 핵심 패턴 + 자체검증 체크리스트
 - 진단 인덱스 (diagnostician 전용): [`references/diagnosis-rules.md`](references/diagnosis-rules.md) — 71패턴 전수 ID·정의·시그니처. `build_diagnosis_rules.py`가 taxonomy에서 자동 생성(직접 편집 금지)
 - 정량 점수 shim: `scripts/prepare_monolith_input.py` — `references/metrics_v2.py`(실패 시 `metrics.py` fallback) + `references/baseline.json` 기반 사전 점수 + `route_hint` 산출
+- 텍스트 위생: `scripts/sanitize_text.py` — shim이 자동 호출(끄려면 `--no-sanitize`). 제로폭·bidi·특수공백 제거 + 한글 NFD→NFC 정규화를 `01_input.txt`에 반영해 이후 변경률 게이트·diff·글자수가 같은 기준을 쓰게 한다. 결정적 처리, LLM 0콜. 변경이 있으면 `00_sanitize.json` 기록. **AI 워터마크 제거 기능이 아니다** (CLAUDE.md 「AI 워터마킹에 대한 입장」 참조)
 - 분류 체계 본진 (SSOT — 유지보수·taxonomist 전용): [`references/ai-tell-taxonomy.md`](references/ai-tell-taxonomy.md) — 10대분류 × 활성 70 패턴 (+A-17 hold 1건) 전수. 런타임 콜은 이 파일을 직접 읽지 않는다
 - 윤문 처방 (진단 전용): [`references/rewriting-playbook.md`](references/rewriting-playbook.md) — 카테고리별 치환 레시피·장르별 허용 표
 - 학술 인용 외부 SSOT: [`references/scholarship.md`](references/scholarship.md) — v2.0 학자 인용·caveat verbatim 보존
