@@ -5,7 +5,7 @@ Humanize KR은 **Claude Code**, **GitHub Copilot CLI**, **OpenAI Codex CLI**, **
 | 도구 | 경로 | 설치 방법 |
 |---|---|---|
 | Claude Code | 3경로 전체 — light 1콜 · standard 2콜 · heavy 3+콜 | ① 플러그인 마켓플레이스(권장) / ② 클론 + `install.sh` |
-| GitHub Copilot CLI | 단일 호출 경로만 | 네이티브 플러그인 직접 설치 / 기존 마켓플레이스(지속 사용 권장) |
+| GitHub Copilot CLI | 단일 호출 경로만 | 플러그인 마켓플레이스(권장) / 저장소 직접 설치(호환성 전용) |
 | Codex CLI | 단일 콜 경로만 | 클론 + `install.sh` |
 | Gemini CLI | 단일 콜 경로만 | ① `gemini extensions install`(권장) / ② 클론 + `install.sh` |
 
@@ -37,7 +37,9 @@ cd im-not-ai
 ./install.sh --claude-only
 ```
 
-`~/.claude/skills/`에 스킬 3개, `~/.claude/agents/`에 에이전트 9개를 **심링크**합니다(저장소를 수정하면 즉시 반영). 새 세션에서 `/humanize-korean`.
+`~/.claude/skills/`에 스킬 3개, `~/.claude/agents/`에 **스킬이 실제로 쓰는 에이전트 4개**(런타임 3 — monolith·diagnostician·finalizer, 유지보수 1 — taxonomist)를 **심링크**합니다(저장소를 수정하면 즉시 반영). 새 세션에서 `/humanize-korean`.
+
+`agents/`의 나머지 5개는 릴리스 회차용 개발 도구라 기본 설치에서 제외합니다 — 서브에이전트는 description 매칭으로 자동 라우팅되므로, 윤문과 무관한 정의가 전역 풀에 상주하면 다른 작업에서 잘못 호출될 수 있습니다. 레포 기여자처럼 전부 필요하면 `./install.sh --all-agents`.
 
 ---
 
@@ -45,29 +47,29 @@ cd im-not-ai
 
 `copilot plugin` 명령을 지원하는 GitHub Copilot CLI가 필요합니다(1.0.79-5에서 검증).
 
-### 방법 ① 저장소에서 직접 설치 — 클론 불필요
+### 방법 ① 플러그인 마켓플레이스 — 클론 불필요 (권장)
 
 ```bash
-copilot plugin install epoko77-ai/im-not-ai
+copilot plugin marketplace add epoko77-ai/im-not-ai
+copilot plugin install humanize-korean@im-not-ai
 copilot plugin list
 copilot skill list
 ```
 
 설치 후 새 Copilot 세션에서 `humanize-korean 스킬로 이 글의 AI 티를 없애줘:`처럼 요청하거나 자연어 트리거("이 글 AI 티 없애줘", "번역투 고쳐")를 사용합니다. 대화형 세션의 `/skills list`에서도 로드 여부를 확인할 수 있습니다.
 
-> 1.0.79-5에서는 직접 설치가 정상 동작하지만 향후 마켓플레이스 설치만 지원한다는 사용 중단 예정 경고가 표시됩니다. 지속 사용에는 아래 방법 ②를 권장합니다.
+- 업데이트: `copilot plugin update humanize-korean@im-not-ai`
+- 제거: `copilot plugin uninstall humanize-korean@im-not-ai`
 
-- 업데이트: `copilot plugin update humanize-korean`
-- 제거: `copilot plugin uninstall humanize-korean`
+Copilot은 마켓플레이스의 `source: "./"`를 저장소 루트 `plugin.json`으로 해석해 `codex/skills/humanize-korean`의 단일 호출 스킬과 공유 `references/`를 로드합니다. Claude Code 전용 `route_hint` 3경로 오케스트레이션, diagnostician, finalizer는 포함하지 않습니다.
 
-### 방법 ② 기존 마켓플레이스 사용 — 지속 사용 권장
+### 방법 ② 저장소에서 직접 설치 — 호환성 전용
 
 ```bash
-copilot plugin marketplace add epoko77-ai/im-not-ai
-copilot plugin install humanize-korean@im-not-ai
+copilot plugin install epoko77-ai/im-not-ai
 ```
 
-Copilot은 `codex/skills/humanize-korean`의 단일 호출 스킬과 공유 `references/`를 로드합니다. Claude Code 전용 `route_hint` 3경로 오케스트레이션, diagnostician, finalizer는 포함하지 않습니다. Copilot용 수동 설치 모드는 따로 없으며 네이티브 플러그인 명령으로 설치·업데이트·제거합니다.
+1.0.79-5에서는 정상 동작하지만 CLI가 저장소 직접 설치의 사용 중단 예정 경고를 표시합니다. 신규 설치에는 방법 ①을 사용하세요. Copilot용 수동 설치 모드는 따로 추가하지 않습니다.
 
 ---
 
@@ -117,7 +119,7 @@ cd im-not-ai
   - `--copy`로 설치했다면 `./update.sh --copy --force`.
 - **수동** — `git pull`만 해도 심링크라 내용은 반영됩니다(신규 파일 연결은 `./install.sh` 한 번 더).
 - **Claude 마켓플레이스 설치** — Claude Code가 갱신을 관리합니다: `/plugin marketplace update im-not-ai` → `/plugin update humanize-korean`.
-- **GitHub Copilot 플러그인** — `copilot plugin update humanize-korean`.
+- **GitHub Copilot 마켓플레이스 플러그인** — `copilot plugin update humanize-korean@im-not-ai`.
 - **주기적 무인 업데이트 (opt-in)** — 완전 자동 갱신을 원하면 cron/launchd로 `update.sh`를 거세요. 예(매주 월 09:00, 감지 시 적용):
   ```cron
   0 9 * * 1  cd /path/to/im-not-ai && ./update.sh >> ~/.humanize-update.log 2>&1
@@ -128,7 +130,7 @@ cd im-not-ai
 
 - **스크립트 설치** — `./uninstall.sh`: 이 저장소를 가리키는 심링크만 제거(직접 둔 파일·`.bak.*`·`--copy` 설치본은 보존).
 - **Claude 마켓플레이스** — `/plugin uninstall humanize-korean`.
-- **GitHub Copilot 플러그인** — `copilot plugin uninstall humanize-korean`.
+- **GitHub Copilot 마켓플레이스 플러그인** — `copilot plugin uninstall humanize-korean@im-not-ai`.
 
 ---
 

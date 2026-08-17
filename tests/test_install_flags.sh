@@ -65,4 +65,24 @@ assert_contains "$claude_desktop_output" "+ ln -s $ROOT/.claude/skills/humanize-
 assert_not_contains "$claude_desktop_output" "Claude Code: "
 rm -rf "$TMP_HOME/.claude"
 
+# 에이전트 선별 설치 — 기본은 스킬이 실제로 쓰는 4종만.
+# agents/ 의 나머지 5종은 릴리스 회차용 개발 도구라 전역 풀에 상주시키지 않는다.
+RUNTIME_AGENTS="humanize-monolith humanize-diagnostician humanize-finalizer korean-ai-tell-taxonomist"
+DEV_ONLY_AGENTS="translationese-research-distiller korean-translation-scholar taxonomy-gap-analyzer post-editese-metric-engineer quick-rules-integrator"
+
+mkdir -p "$TMP_HOME/.claude"
+default_agents_output="$(run_installer --claude-only)"
+for a in $RUNTIME_AGENTS; do
+  assert_contains "$default_agents_output" "+ ln -s $ROOT/agents/$a.md $TMP_HOME/.claude/agents/$a.md"
+done
+for a in $DEV_ONLY_AGENTS; do
+  assert_not_contains "$default_agents_output" "$ROOT/agents/$a.md"
+done
+
+all_agents_output="$(run_installer --claude-only --all-agents)"
+for a in "$ROOT"/agents/*.md; do
+  assert_contains "$all_agents_output" "+ ln -s $a $TMP_HOME/.claude/agents/$(basename "$a")"
+done
+rm -rf "$TMP_HOME/.claude"
+
 echo "install flag tests passed"

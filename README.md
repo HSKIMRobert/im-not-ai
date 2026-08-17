@@ -12,16 +12,17 @@ AI(ChatGPT · Claude · Gemini 등)가 쓴 한글 글을 **내용은 한 글자�
 
 > **Claude Code**, **GitHub Copilot CLI**, **OpenAI Codex CLI**, **Gemini CLI**를 지원합니다. 전체 가이드: [`INSTALL.md`](INSTALL.md)
 
-**GitHub Copilot CLI — 네이티브 플러그인 (클론 불필요)**
+**GitHub Copilot CLI — 플러그인 마켓플레이스 (클론 불필요, 권장)**
 
 ```bash
-copilot plugin install epoko77-ai/im-not-ai
+copilot plugin marketplace add epoko77-ai/im-not-ai
+copilot plugin install humanize-korean@im-not-ai
 copilot plugin list
 ```
 
-Copilot에서 `humanize-korean 스킬로 이 글의 AI 티를 없애줘:`처럼 요청하거나 `/skills list`로 로드 여부를 확인하세요. 업데이트는 `copilot plugin update humanize-korean`, 제거는 `copilot plugin uninstall humanize-korean`입니다. Copilot은 **단일 호출 경로만** 제공하며 Claude Code 전용 진단·finalize 다중 호출 경로는 실행하지 않습니다.
+Copilot에서 `humanize-korean 스킬로 이 글의 AI 티를 없애줘:`처럼 요청하거나 `/skills list`로 로드 여부를 확인하세요. 업데이트는 `copilot plugin update humanize-korean@im-not-ai`, 제거는 `copilot plugin uninstall humanize-korean@im-not-ai`입니다. Copilot은 **단일 호출 경로만** 제공하며 Claude Code 전용 진단·finalize 다중 호출 경로는 실행하지 않습니다.
 
-> 1.0.79-5에서는 저장소 직접 설치 시 향후 마켓플레이스 설치만 지원한다는 사용 중단 예정 경고가 표시됩니다. 현재 직접 설치는 정상 동작하며, 지속 사용에는 아래 기존 마켓플레이스 경로를 권장합니다.
+> 호환성 참고: 1.0.79-5에서는 `copilot plugin install epoko77-ai/im-not-ai`도 동작하지만, CLI가 저장소 직접 설치의 사용 중단 예정 경고를 표시합니다. 신규 설치 경로로는 권장하지 않습니다.
 
 **Claude Code — 플러그인 마켓플레이스 (클론 불필요, 권장)**
 
@@ -207,24 +208,20 @@ Claude Code에서는 세 가지 방법 중 편한 쪽으로 사용합니다. Git
 
 **방법 D — GitHub Copilot CLI (공식, 단일 호출 경로)**
 
-GitHub Copilot CLI 1.0.79-5에서 네이티브 플러그인 설치와 스킬 탐색을 확인했습니다. 저장소 직접 설치는 현재 동작하지만 사용 중단 예정 경고가 표시되므로, 지속 사용에는 아래 마켓플레이스 경로를 권장합니다.
-
-```bash
-copilot plugin install epoko77-ai/im-not-ai
-copilot plugin list
-copilot skill list
-```
-
-새 Copilot 세션에서 `humanize-korean 스킬로 이 글을 자연스럽게 윤문해줘:` 또는 `이 글 AI 티 없애줘:`처럼 요청합니다. `/skills list`에서도 스킬을 확인할 수 있습니다. 업데이트는 `copilot plugin update humanize-korean`, 제거는 `copilot plugin uninstall humanize-korean`을 사용하세요.
-
-기존 마켓플레이스 경로도 쓸 수 있습니다.
+GitHub Copilot CLI 1.0.79-5에서 마켓플레이스 설치와 스킬 탐색을 확인했습니다.
 
 ```bash
 copilot plugin marketplace add epoko77-ai/im-not-ai
 copilot plugin install humanize-korean@im-not-ai
+copilot plugin list
+copilot skill list
 ```
 
+새 Copilot 세션에서 `humanize-korean 스킬로 이 글을 자연스럽게 윤문해줘:` 또는 `이 글 AI 티 없애줘:`처럼 요청합니다. `/skills list`에서도 스킬을 확인할 수 있습니다. 업데이트는 `copilot plugin update humanize-korean@im-not-ai`, 제거는 `copilot plugin uninstall humanize-korean@im-not-ai`을 사용하세요.
+
 Copilot은 Codex와 같은 **단일 호출 경로**를 사용합니다. Claude Code 전용 `route_hint` 3경로 오케스트레이션과 진단·finalize 서브에이전트는 Copilot에서 실행되지 않습니다.
+
+> 저장소 직접 설치 명령 `copilot plugin install epoko77-ai/im-not-ai`은 1.0.79-5에서 동작하지만 사용 중단 예정 경고가 표시되는 호환성 경로입니다.
 
 **방법 E — Codex CLI (공식, 단일 콜 경로)**
 

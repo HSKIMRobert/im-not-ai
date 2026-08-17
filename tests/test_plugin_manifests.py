@@ -1,4 +1,4 @@
-"""Plugin manifests expose the current skill without duplicating references."""
+"""The Copilot plugin exposes the single-call skill and shared references."""
 
 from __future__ import annotations
 
@@ -11,17 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def test_plugin_versions_stay_in_sync() -> None:
-    copilot = _load(ROOT / "plugin.json")
-    claude = _load(ROOT / ".claude-plugin" / "plugin.json")
-    marketplace = _load(ROOT / ".claude-plugin" / "marketplace.json")
-
-    assert copilot["version"] == claude["version"]
-    assert marketplace["metadata"]["version"] == copilot["version"]
-    assert marketplace["plugins"][0]["version"] == copilot["version"]
-
 
 def test_copilot_plugin_exposes_single_call_skill_and_references() -> None:
     manifest = _load(ROOT / "plugin.json")

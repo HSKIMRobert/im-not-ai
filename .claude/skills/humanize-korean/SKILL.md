@@ -19,6 +19,13 @@ humanize-korean v2.3 — 경로: {light|standard|heavy} ({route_hint|사용자 �
 
 (경로는 Phase 1의 shim 실행 후에 확정되므로, 이 상태 줄은 shim 직후 출력한다.)
 
+### 전 경로 공통 의미 앵커
+
+- 윤문 전에 문장별 **핵심 내용 명사·개념어**를 내부 목록으로 잡는다. 주어·목적어·보어에서 원문의 주장을 구성하는 어휘가 대상이다.
+- 조사·어미는 바꿀 수 있지만, 내용 앵커의 원형 어휘는 결과에 최소 한 번 그대로 남긴다. 동의어 치환이나 문장 병합을 이유로 삭제하지 않는다.
+- AI 관용구·추상어를 덜어낼 때는 수식어와 형식명사만 걷어낸다. 내용 앵커까지 함께 사라질 것 같으면 해당 문장을 롤백한다.
+- 출력 직전 원문과 윤문본을 다시 대조한다. 내용 앵커 하나라도 빠졌으면 자연성보다 의미 보존을 우선해 복원한다.
+
 ### 경로 결정 규칙
 1. **사용자 명시가 최우선.** `--strict`·"정밀 모드"·"정밀하게"·"제대로" → **heavy 고정**. "가볍게"·"빠르게만" → **light 고정**. 명시가 있으면 route_hint는 무시한다.
 2. 명시가 없으면 shim이 `00_metrics.json`에 쓴 **`route_hint`**(`light`|`standard`|`heavy`)를 디폴트 경로로 따른다.
@@ -57,7 +64,7 @@ humanize-korean v2.3 — 경로: {light|standard|heavy} ({route_hint|사용자 �
 어휘 티가 거의 없고 구조 티만 미미한 글. 목표는 **과윤문 방지**이지 많이 고치는 게 아니다.
 
 1. **진단 생략.** `humanize-monolith`를 `Agent` 도구로 1회 호출 — 청킹 없음.
-   - 입력: `input_path=01_input_with_metrics.txt`, `quick_rules_path=${CLAUDE_SKILL_DIR}/references/quick-rules.md`, `genre_hint`, 그리고 강도 지시 `보수`(원문에 없던 표현 삽입 금지, 확신 없는 구간은 그대로 둔다).
+   - 입력: `input_path=01_input_with_metrics.txt`, `quick_rules_path=${CLAUDE_SKILL_DIR}/references/quick-rules.md`, `genre_hint`, 그리고 강도 지시 `보수`(내용 앵커 원형 보존, 원문에 없던 표현 삽입 금지, 확신 없는 구간은 그대로 둔다).
    - 출력: `final.md` (본문 + `<!-- HUMANIZE-SUMMARY -->` 블록).
 2. Phase 2.5 변경률 게이트(Bash — LLM 콜 아님).
 3. **조기 종료 보고**: monolith 탐지가 거의 없고 게이트 변경률이 5% 미만이면, 결과 전달을 "이미 좋은 글입니다 — 손댄 곳은 {N}곳({요지}) 정도"로 요약한다. 억지로 더 고치지 않는다.
@@ -219,11 +226,11 @@ exit code로 분기한다 (0/1/2/3 의미는 기존 게이트와 동일):
 
 **모델:** 런타임 3종 모두 `model: opus`. (모델 선택은 본 스킬의 관할이 아니다 — 오픈소스 사용자가 정한다. v2.2의 절감은 전적으로 콜 수·경로에서 온다.)
 
-**에이전트 정의 위치:** 저장소 루트 `agents/`에 12종 정의(플러그인 컨벤션). Claude Code 탐색 경로:
+**에이전트 정의 위치:** 저장소 루트 `agents/`에 9종 정의(플러그인 컨벤션). Claude Code 탐색 경로:
 1. 플러그인 설치 시 — `humanize-korean` 플러그인이 `agents/`를 번들로 제공(전역).
 2. 스크립트 설치 시 — `install.sh`가 `agents/*.md`를 `~/.claude/agents/`에 심링크(전역).
 
-`.claude/agents/`에는 총 10개 정의가 있으나, **본 스킬 런타임이 호출하는 것은 3종뿐**이다.
+9종의 내역은 런타임 3 + 유지보수 1 + 개발용 1회성 5이며, **본 스킬 런타임이 호출하는 것은 3종뿐**이다.
 
 **런타임 3종 (스킬 실행 중 호출)**
 - `humanize-monolith` — 전 경로 공용 윤문 콜
@@ -238,6 +245,7 @@ exit code로 분기한다 (0/1/2/3 의미는 기존 게이트와 동일):
 ## 주의 사항
 
 - **의미 불변이 최상위 불문율.** 전 경로에서 위반 즉시 롤백.
+- **핵심 내용 명사·개념어는 원형 보존.** 조사·어미 외의 동의어 치환이나 삭제로 주장 뼈대를 바꾸지 않는다.
 - **수치·고유명사·직접 인용은 탐지/윤문 대상 아님.** Do-NOT list 엄수.
 - **장르 이탈 금지.** 칼럼이 에세이로, 에세이가 문학으로 옮겨가지 않는다.
 - **register 보존 — 양방향.** 격식체 입력 → 격식체 출력, 구어 입력 → 구어 출력. 격식 상향('-했-'→'-하였-') 금지, 구어 종결('~인데요/~거든요') 보존.
@@ -251,6 +259,7 @@ exit code로 분기한다 (0/1/2/3 의미는 기존 게이트와 동일):
 - 슬림 룰북 (monolith 전용): [`references/quick-rules.md`](references/quick-rules.md) — S1·S2 핵심 패턴 + 자체검증 체크리스트
 - 진단 인덱스 (diagnostician 전용): [`references/diagnosis-rules.md`](references/diagnosis-rules.md) — 71패턴 전수 ID·정의·시그니처. `build_diagnosis_rules.py`가 taxonomy에서 자동 생성(직접 편집 금지)
 - 정량 점수 shim: `scripts/prepare_monolith_input.py` — `references/metrics_v2.py`(실패 시 `metrics.py` fallback) + `references/baseline.json` 기반 사전 점수 + `route_hint` 산출
+- 텍스트 위생: `scripts/sanitize_text.py` — shim이 자동 호출(끄려면 `--no-sanitize`). 제로폭·bidi·특수공백 제거 + 한글 NFD→NFC 정규화를 `01_input.txt`에 반영해 이후 변경률 게이트·diff·글자수가 같은 기준을 쓰게 한다. 결정적 처리, LLM 0콜. 변경이 있으면 `00_sanitize.json` 기록. **AI 워터마크 제거 기능이 아니다** (CLAUDE.md 「AI 워터마킹에 대한 입장」 참조)
 - 분류 체계 본진 (SSOT — 유지보수·taxonomist 전용): [`references/ai-tell-taxonomy.md`](references/ai-tell-taxonomy.md) — 10대분류 × 활성 70 패턴 (+A-17 hold 1건) 전수. 런타임 콜은 이 파일을 직접 읽지 않는다
 - 윤문 처방 (진단 전용): [`references/rewriting-playbook.md`](references/rewriting-playbook.md) — 카테고리별 치환 레시피·장르별 허용 표
 - 학술 인용 외부 SSOT: [`references/scholarship.md`](references/scholarship.md) — v2.0 학자 인용·caveat verbatim 보존
