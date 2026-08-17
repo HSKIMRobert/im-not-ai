@@ -81,7 +81,8 @@ BIDI = re.compile(
 # 태그 문자 — 숨은 텍스트 삽입 외 쓰임이 없다
 TAG_CHARS = re.compile("[" + _cls((0xE0000, 0xE007F)) + "]")
 
-# 특수 공백 → 보통 공백
+# 특수 공백 → 보통 공백. 전각공백(U+3000)은 눈에 보이는 폭이라 여기서 제외 —
+# 필요하면 normalize_ideographic_space 옵션으로 따로 켠다.
 SPECIAL_SPACES = re.compile(
     "["
     + _cls(
@@ -90,10 +91,11 @@ SPECIAL_SPACES = re.compile(
         (0x2000, 0x200A),
         NARROW_NBSP,
         MED_MATH_SPACE,
-        IDEOGRAPHIC_SPACE,
     )
     + "]"
 )
+
+IDEOGRAPHIC_SPACE_RE = re.compile("[" + _cls(IDEOGRAPHIC_SPACE) + "]")
 
 # 유니코드 줄/문단 구분자
 UNI_BREAKS = re.compile("[" + _cls(LINE_SEP, PARA_SEP) + "]")
@@ -172,6 +174,13 @@ def sanitize(
     strip_invisible: bool = True,
     normalize_spaces: bool = True,
     normalize_lines: bool = True,
+    # ── 아래 둘은 기본 off ────────────────────────────────────────────
+    # 나머지 항목이 "고장을 고치는" 처리(제로폭이 글자수를 부풀리고, NFD 가 검색·
+    # 게이트를 깨뜨림)인 것과 달리, 이 둘은 **고장이 아닌데 눈에 보이는 것**을 바꾼다.
+    # 전각공백을 들여쓰기로 쓰는 필자가 있고, 빈 줄 간격은 필자의 선택이다.
+    # 철칙 #1(의미 불변)과 충돌하지 않도록 opt-in 으로 둔다.
+    normalize_ideographic_space: bool = False,
+    collapse_blank_lines: bool = False,
 ) -> tuple[str, SanitizeReport]:
     """텍스트 위생 처리. (정리된 텍스트, 보고서) 를 돌려준다."""
     original = text
@@ -208,6 +217,9 @@ def sanitize(
     if normalize_spaces:
         counts["special_spaces"] = len(SPECIAL_SPACES.findall(text))
         text = SPECIAL_SPACES.sub(" ", text)
+    if normalize_ideographic_space:
+        counts["special_spaces"] += len(IDEOGRAPHIC_SPACE_RE.findall(text))
+        text = IDEOGRAPHIC_SPACE_RE.sub(" ", text)
 
     # 4) 줄바꿈 정리
     if normalize_lines:
@@ -222,6 +234,8 @@ def sanitize(
         counts["trailing_space_lines"] = len(re.findall(r"[ \t]+$", text, re.MULTILINE))
         text = re.sub(r"[ \t]+$", "", text, flags=re.MULTILINE)
 
+    # 빈 줄 3개 이상 → 2개. 기본 off — 문단 간격은 필자의 선택이다.
+    if collapse_blank_lines:
         text = re.sub(r"\n{3,}", "\n\n", text)
 
     changed = text != original

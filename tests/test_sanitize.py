@@ -94,22 +94,32 @@ class SanitizeTests(unittest.TestCase):
         self.assertEqual(out, "한글 테스트")
         self.assertEqual(rep.counts["hangul_recomposed"], 5)  # 한·글·테·스·트
 
-    # ── 7. 특수 공백 ──────────────────────────────────────────────────
+    # ── 7. 특수 공백 (전각공백은 기본 보존) ───────────────────────────
     def test_special_spaces(self):
         dirty = "가" + NBSP + "나" + IDEO + "다" + NARROW_NBSP + "라"
         out, rep = st.sanitize(dirty)
-        self.assertEqual(out, "가 나 다 라")
-        self.assertEqual(rep.counts["special_spaces"], 3)
+        self.assertEqual(out, "가 나" + IDEO + "다 라")
+        self.assertEqual(rep.counts["special_spaces"], 2)
+        self.assertIn(IDEO, out, "전각공백은 기본 보존")
 
-    # ── 8. 줄바꿈·줄 끝 공백·과다 빈 줄 ───────────────────────────────
+    def test_ideographic_space_opt_in(self):
+        out, rep = st.sanitize("가" + IDEO + "나", normalize_ideographic_space=True)
+        self.assertEqual(out, "가 나")
+        self.assertEqual(rep.counts["special_spaces"], 1)
+
+    # ── 8. 줄바꿈·줄 끝 공백 (빈 줄은 기본 보존) ──────────────────────
     def test_line_normalization(self):
         dirty = (
             "첫 줄   \r\n둘째 줄" + LINE_SEP + "셋째 줄" + PARA_SEP + "\n\n\n\n넷째 줄"
         )
         out, rep = st.sanitize(dirty)
-        self.assertEqual(out, "첫 줄\n둘째 줄\n셋째 줄\n\n넷째 줄")
+        self.assertEqual(out, "첫 줄\n둘째 줄\n셋째 줄\n\n\n\n\n넷째 줄")
         self.assertGreaterEqual(rep.counts["line_breaks"], 3)
         self.assertGreaterEqual(rep.counts["trailing_space_lines"], 1)
+
+    def test_collapse_blank_lines_opt_in(self):
+        self.assertEqual(st.sanitize("가\n\n\n\n나", collapse_blank_lines=True)[0], "가\n\n나")
+        self.assertEqual(st.sanitize("가\n\n\n\n나")[0], "가\n\n\n\n나")
 
     # ── 9. 멱등성 ─────────────────────────────────────────────────────
     def test_idempotent(self):
