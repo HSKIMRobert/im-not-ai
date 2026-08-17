@@ -8,7 +8,7 @@ documented failure modes fail.
 
 stdlib only. Usage as a library:
 
-    from checks import run_checks
+    from checks import run_checks  # scripts/ 에 위치
     failures = run_checks(original_text, rewritten_text)
     # empty list == PASS
 
