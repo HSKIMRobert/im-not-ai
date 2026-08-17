@@ -84,15 +84,33 @@ def _next_run_dir(workspace: Path) -> Path:
 
 
 def _resolve_run_dir(run_dir_arg: str | None, text_arg: str | None) -> Path:
+    """상대 경로는 **cwd** 기준으로 푼다.
+
+    이전에는 PROJECT_ROOT(설치 저장소 루트) 기준이었다. SKILL.md 는 "모든 경로는
+    cwd 기준"이라고 지시하는데 스크립트는 저장소 루트에서 찾으니, 심링크로 설치해
+    사용자 작업 디렉터리에서 스킬을 부르는 정상 흐름이 첫 실행부터 실패했다.
+    (저장소 루트에서 돌릴 때는 cwd == PROJECT_ROOT 라 동작이 같다.)
+
+    빈 디렉터리도 남기지 않는다 — 예전에는 존재 확인 전에 mkdir 을 해서, 실패할
+    때마다 설치 위치에 빈 `_workspace/{run_id}/` 가 쌓였다. 새로 만드는 경우
+    (--text)에만 생성한다.
+    """
     if run_dir_arg:
         rd = Path(run_dir_arg)
         if not rd.is_absolute():
-            rd = PROJECT_ROOT / rd
-        rd.mkdir(parents=True, exist_ok=True)
+            rd = Path.cwd() / rd
+        if text_arg is not None:
+            rd.mkdir(parents=True, exist_ok=True)  # 입력을 쓸 것이므로 생성
+        elif not rd.is_dir():
+            raise SystemExit(
+                f"run-dir not found: {rd}\n"
+                "  (상대 경로는 현재 디렉터리 기준으로 해석됩니다. "
+                "--text 를 주면 새로 만듭니다.)"
+            )
         return rd
     if text_arg is None:
         raise SystemExit("Either --run-dir or --text is required")
-    workspace = PROJECT_ROOT / "_workspace"
+    workspace = Path.cwd() / "_workspace"
     rd = _next_run_dir(workspace)
     rd.mkdir(parents=True, exist_ok=True)
     return rd
@@ -820,7 +838,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.diagnosis:
         diag_path = Path(args.diagnosis)
         if not diag_path.is_absolute():
-            diag_path = PROJECT_ROOT / diag_path
+            diag_path = Path.cwd() / diag_path  # --run-dir 과 같은 기준(cwd)
         if not diag_path.exists():
             raise SystemExit(f"--diagnosis file not found: {diag_path}")
         diagnosis = diag_path.read_text(encoding="utf-8")
