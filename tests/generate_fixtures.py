@@ -49,6 +49,8 @@ def main(argv: list[str] | None = None) -> int:
         if not args.ids and not args.all and fx.get("output_text"):
             continue  # 기본: null 만
         try:
+            # 프롬프트에 정답을 넣지 않는다 — 참조 출력은 힌트 없는 조건에서
+            # 생성돼야 이후 회귀 판정의 기준으로 쓸 수 있다.
             out = hr.run_humanize(fx["input_text"], strict=args.strict)
         except hr.SkillUnavailable as exc:
             print(f"[{fid}] 실패: {exc}", file=sys.stderr)
