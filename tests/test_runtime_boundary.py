@@ -95,3 +95,23 @@ class RuntimeBoundaryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FinalizeContractTests(unittest.TestCase):
+    """Light 승급 시 diagnosis_path 계약 (#54).
+
+    Light 는 02_diagnosis.md 를 만들지 않는데 승급 규칙은 전 경로 공통이라,
+    finalizer 가 진단을 필수로 요구하면 Light 승급 경로가 실행 불가가 된다.
+    """
+
+    def test_finalizer_marks_diagnosis_optional(self) -> None:
+        t = (_ROOT / "agents" / "humanize-finalizer.md").read_text(encoding="utf-8")
+        self.assertIn("`diagnosis_path`(**선택**)", t, "diagnosis_path 가 선택으로 표기돼야 함")
+        self.assertIn("Light 경로는 진단을 생략하므로", t)
+
+    def test_skill_documents_light_escalation(self) -> None:
+        t = (_ROOT / ".claude" / "skills" / "humanize-korean" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("진단 파일이 없을 때(Light 승급)", t)
+        self.assertIn("`diagnosis_path` 없이", t)
