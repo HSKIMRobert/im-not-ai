@@ -4,13 +4,25 @@
 
 # Humanize KR — 한글 AI 티 제거기 v2.3.1
 
-AI(ChatGPT · Claude · Gemini 등)가 쓴 한글 글을 **내용은 한 글자도 건드리지 않고** 문체 · 리듬 · 표현만 자연스러운 한국어로 되돌리는 Claude Code 스킬입니다. 
+AI(ChatGPT · Claude · Gemini 등)가 쓴 한글 글을 **내용은 한 글자도 건드리지 않고** 문체 · 리듬 · 표현만 자연스러운 한국어로 되돌리는 CLI 스킬입니다.
 
 번역투, 과도한 영어 인용, 기계적 병렬 ("첫째 · 둘째 · 셋째"), "결론적으로 / 시사하는 바가 크다" 같은 AI 특유 관용구, 피동태 남용, 문두 접속사 남발, 이모지·불릿 남용 등 **10대 카테고리 × 70 서브 패턴**(+검증 대기 hold 1건)을 심각도(S1/S2/S3)로 분류해 스팬 단위로 탐지한 뒤, 윤문합니다. 
 
 ## 설치 (Install)
 
-> **Claude Code**와 **OpenAI Codex CLI** 양쪽을 지원합니다. 전체 가이드: [`INSTALL.md`](INSTALL.md)
+> **Claude Code**, **GitHub Copilot CLI**, **OpenAI Codex CLI**, **Gemini CLI**를 지원합니다. 전체 가이드: [`INSTALL.md`](INSTALL.md)
+
+**GitHub Copilot CLI — 플러그인 마켓플레이스 (클론 불필요, 권장)**
+
+```bash
+copilot plugin marketplace add epoko77-ai/im-not-ai
+copilot plugin install humanize-korean@im-not-ai
+copilot plugin list
+```
+
+Copilot에서 `humanize-korean 스킬로 이 글의 AI 티를 없애줘:`처럼 요청하거나 `/skills list`로 로드 여부를 확인하세요. 업데이트는 `copilot plugin update humanize-korean@im-not-ai`, 제거는 `copilot plugin uninstall humanize-korean@im-not-ai`입니다. Copilot은 **단일 호출 경로만** 제공하며 Claude Code 전용 진단·finalize 다중 호출 경로는 실행하지 않습니다.
+
+> 호환성 참고: 1.0.79-5에서는 `copilot plugin install epoko77-ai/im-not-ai`도 동작하지만, CLI가 저장소 직접 설치의 사용 중단 예정 경고를 표시합니다. 신규 설치 경로로는 권장하지 않습니다.
 
 **Claude Code — 플러그인 마켓플레이스 (클론 불필요, 권장)**
 
@@ -129,14 +141,14 @@ cd im-not-ai
 
 ### 0. 전제
 
-[Claude Code](https://claude.com/claude-code)가 설치돼 있어야 합니다. Mac · Windows · Linux 모두 지원합니다.
+아래 1~4단계는 3경로 전체를 제공하는 [Claude Code](https://claude.com/claude-code) 기준입니다. GitHub Copilot CLI·Codex CLI·Gemini CLI의 단일 호출 경로는 아래 각 도구별 방법을 참고하세요. Mac · Windows · Linux 모두 지원합니다.
 
 설치 확인:
 ```bash
 claude --version
 ```
 
-> Claude Code는 터미널에서 Claude(Anthropic의 AI)와 대화하며 파일을 같이 편집하는 CLI입니다. 이 리포의 스킬·에이전트는 Claude Code에서만 작동합니다. (웹 버전 Claude.ai나 일반 ChatGPT에서는 안 됩니다.)
+> Claude Code는 터미널에서 Claude(Anthropic의 AI)와 대화하며 파일을 같이 편집하는 CLI입니다. 웹 버전 Claude.ai나 일반 ChatGPT에서는 이 저장소의 스킬이 자동 로드되지 않습니다.
 
 ### 1. 리포 받기
 
@@ -156,7 +168,7 @@ claude
 
 ### 3. AI가 쓴 한글 글 붙여넣고 부탁하기
 
-Claude Code에서는 세 가지 방법 중 편한 쪽으로 사용합니다. Codex 사용자는 아래 **방법 D**의 community port를 참고하세요.
+Claude Code에서는 세 가지 방법 중 편한 쪽으로 사용합니다. GitHub Copilot CLI·Codex CLI 사용자는 아래 **방법 D·E**를 참고하세요.
 
 **방법 A — 자연어 한 문장 (가장 쉬움)**
 
@@ -194,7 +206,24 @@ Claude Code에서는 세 가지 방법 중 편한 쪽으로 사용합니다. Cod
 
 스킬 3개 + 서브에이전트 9개가 함께 설치됩니다. 자세한 옵션·스크립트 설치는 [설치](#설치-install) 섹션과 [`INSTALL.md`](INSTALL.md) 참고. (초기 패키징을 탐색한 [`gaebalai/im-not-ai`](https://github.com/gaebalai/im-not-ai) 포크도 있습니다.)
 
-**방법 D — Codex CLI (공식, 단일 콜 경로)**
+**방법 D — GitHub Copilot CLI (공식, 단일 호출 경로)**
+
+GitHub Copilot CLI 1.0.79-5에서 마켓플레이스 설치와 스킬 탐색을 확인했습니다.
+
+```bash
+copilot plugin marketplace add epoko77-ai/im-not-ai
+copilot plugin install humanize-korean@im-not-ai
+copilot plugin list
+copilot skill list
+```
+
+새 Copilot 세션에서 `humanize-korean 스킬로 이 글을 자연스럽게 윤문해줘:` 또는 `이 글 AI 티 없애줘:`처럼 요청합니다. `/skills list`에서도 스킬을 확인할 수 있습니다. 업데이트는 `copilot plugin update humanize-korean@im-not-ai`, 제거는 `copilot plugin uninstall humanize-korean@im-not-ai`을 사용하세요.
+
+Copilot은 Codex와 같은 **단일 호출 경로**를 사용합니다. Claude Code 전용 `route_hint` 3경로 오케스트레이션과 진단·finalize 서브에이전트는 Copilot에서 실행되지 않습니다.
+
+> 저장소 직접 설치 명령 `copilot plugin install epoko77-ai/im-not-ai`은 1.0.79-5에서 동작하지만 사용 중단 예정 경고가 표시되는 호환성 경로입니다.
+
+**방법 E — Codex CLI (공식, 단일 콜 경로)**
 
 본체가 이제 Codex CLI Skills를 **공식 지원**합니다. 리포 클론 후 한 줄이면 `~/.codex/skills/`에 연결됩니다:
 
@@ -205,7 +234,7 @@ git clone https://github.com/epoko77-ai/im-not-ai.git && cd im-not-ai
 
 Codex에서 `$humanize-korean`으로 발동합니다(또는 `/skills` 메뉴). Codex는 **단일 콜 경로만** 제공하며, 다콜 경로(standard 2콜 · heavy 3+콜, 진단·finalize 포함)는 Claude Code 전용입니다. (Codex Desktop용 별도 어댑터로는 community 포트 [`Squirbie/im-not-ai-codex`](https://github.com/Squirbie/im-not-ai-codex)도 있습니다.)
 
-**방법 E — Web UI (비공식)**
+**방법 F — Web UI (비공식)**
 
 opencode 로 윤문하는 커뮤니티 제작 포트입니다.
 - 접속: [im-not-ai-ocx.illuwa.click](https://im-not-ai-ocx.illuwa.click/)
