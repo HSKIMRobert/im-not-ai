@@ -1,9 +1,9 @@
 """패키징 매니페스트 버전 동기화 — 결정적, CI에서 항상 실행.
 
 RELEASING.md는 "SKILL.md frontmatter가 런타임 SSOT"라고 못박고, 버전 문자열이
-등장하는 위치를 §1 표로 전수 관리한다. 그런데 그 표에 배포 매니페스트
-(`.claude-plugin/*.json`)가 빠져 있어 마켓플레이스 설치 사용자가 보는 버전만
-갱신 대상에서 누락돼 왔다.
+등장하는 위치를 §1 표로 전수 관리한다. Claude 배포 매니페스트
+(`.claude-plugin/*.json`)와 Copilot 배포 매니페스트(`plugin.json`)가
+런타임 SSOT와 어긋나지 않도록 함께 검증한다.
 
 이 테스트는 그 누락을 사람의 체크리스트 대신 코드가 막는다 —
 `build_quick_rules.py --check`가 룰북 drift를 막는 것과 같은 방식.
