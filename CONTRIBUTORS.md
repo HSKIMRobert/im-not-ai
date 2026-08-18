@@ -301,6 +301,21 @@ v1.2 회차 기여는 위 「v1.2 외부 기여자」 항목에 있습니다. �
 - [PR #65](https://github.com/epoko77-ai/im-not-ai/pull/65) — 루트 `plugin.json` 매니페스트로 Copilot CLI 네이티브 플러그인 설치 지원, README·INSTALL 문서화.
 - 리뷰에서 "마켓플레이스 설치 시 루트 `plugin.json` 과 `.claude-plugin/plugin.json` 중 어느 쪽이 로드되는가" 를 물었는데, **격리된 `COPILOT_HOME` 에 원격 마켓플레이스로 직접 등록해 실행 결과로 답**해 주셨습니다(`loaded_skill=.../codex/skills/humanize-korean`, `remote_skill_matches_codex=true`). 추론이 아니라 실측이었기에 안심하고 받을 수 있었습니다.
 
+### [@ted794](https://github.com/ted794) (TAEEON KOO)
+
+**기여**: **플러그인 스킬이 관례 위치에 없다는 것**을 진단해 제보. Cowork 에 설치해 쓰다 스킬이 하나도 안 잡히는 것을 발견하고, 원인까지 정확히 짚어 알려주셨습니다.
+
+> Cowork 로더는 스킬을 플러그인 루트 `skills/` 에서 찾는데 원본은 `.claude/skills/` 에 두고 매니페스트 `skills` 필드로 가리켜서, 디렉터리 깊이가 한 칸 어긋납니다.
+
+**반영**: [PR #91](https://github.com/epoko77-ai/im-not-ai/pull/91) → **v2.3.2** 발행
+
+- 확인 결과 스펙의 예외 조항에 걸려 있었습니다 — `skills` 필드는 보통 기본 `skills/` 스캔에 *더해지지만*, **marketplace 항목의 `source` 가 마켓플레이스 루트로 풀리면 선언한 디렉터리가 기본 스캔을 대체**합니다. 우리 `source` 는 `"./"` 라 정확히 그 경우였고, 관례 위치는 비어 있었습니다.
+- **파급이 Cowork 에 그치지 않았습니다.** 조사 과정에서, CLI 마켓플레이스로 설치한 사용자는 스킬이 로드는 됐지만 **정량 shim 과 철칙 #4 게이트가 조용히 빠진 채로** 쓰고 있었다는 것이 함께 드러났습니다. 결과물은 정상적으로 나오기 때문에 품질 저하를 알아채기 어려운 상태였습니다.
+- 스킬 3종을 루트 `skills/` 로 옮기고 `plugin.json` 의 `skills` 필드를 제거했습니다. 겸사겸사 `${SKILL_ROOT}` 유도도 고정 깊이(`cd ../../..`)에서 **`.claude-plugin/` 마커 탐색**으로 바꿔, 앞으로 레이아웃이 바뀌어도 깨지지 않게 했습니다.
+- 에이전트는 같은 이유로 이미 루트 `agents/` 에 있었습니다([#26](https://github.com/epoko77-ai/im-not-ai/pull/26)). **스킬만 남아 있었던 것**을 짚어주신 셈입니다.
+
+이 회차의 경로 문제 세 건([#84](https://github.com/epoko77-ai/im-not-ai/issues/84) · [#88](https://github.com/epoko77-ai/im-not-ai/pull/88) · 이 건) 은 모두 **실제로 설치해 쓴 분들**이 찾아주셨습니다. 저장소 안에서만 테스트하면 원리적으로 보이지 않는 것들입니다.
+
 ### 검토 중` 앞에 삽입)
 
 ### [@hs85-newbie](https://github.com/hs85-newbie)
