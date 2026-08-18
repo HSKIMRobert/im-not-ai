@@ -54,10 +54,11 @@ humanize-korean v2.3 — 경로: {light|standard|heavy} ({route_hint|사용자 �
 Phase 1 시작 전에 한 번 정한다.
 
 ```bash
-SKILL_ROOT="$(cd -P "${CLAUDE_SKILL_DIR}" && cd ../../.. && pwd)"
+SKILL_ROOT="$(d="$(cd -P "${CLAUDE_SKILL_DIR}" && pwd)"; \
+  while [ "$d" != / ] && [ ! -d "$d/.claude-plugin" ]; do d="$(dirname "$d")"; done; echo "$d")"
 ```
 
-`${CLAUDE_SKILL_DIR}`는 `<설치루트>/.claude/skills/humanize-korean` 이므로 상위 3단계가 설치 루트다.
+`.claude-plugin/` 디렉터리를 만날 때까지 거슬러 올라간다. **고정된 횟수로 올라가지 않는 이유**는 스킬 위치가 배포 방식마다 다를 수 있어서다 — 고정 깊이는 레이아웃이 바뀌면 조용히 엉뚱한 곳을 가리킨다.
 
 **`cd -P` 가 핵심이다.** 심링크 설치(`install.sh` 기본)에서는 스킬 디렉터리가 저장소를 가리키는 심링크라, 그냥 `cd` 하면 셸이 논리 경로를 유지해 엉뚱한 곳(홈 디렉터리)으로 올라간다. `-P` 로 물리 경로를 먼저 푼 뒤 올라가야 심링크·플러그인 양쪽에서 같은 답이 나온다. 이후 모든 스크립트 호출에 `${SKILL_ROOT}/scripts/...` 를 쓴다.
 

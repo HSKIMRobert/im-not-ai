@@ -120,7 +120,7 @@ cd im-not-ai
 | I | 형식명사 과다 | "것이다", "점", "수", "바", "~할 필요가 있다" |
 | J | 시각 장식 남용 | 과도한 **볼드**, "따옴표", 대시(—) 남발 |
 
-전체 70 서브 패턴(+hold 1건)과 처방: [`ai-tell-taxonomy.md`](.claude/skills/humanize-korean/references/ai-tell-taxonomy.md) · [`rewriting-playbook.md`](.claude/skills/humanize-korean/references/rewriting-playbook.md) · 학술 인용 외부 SSOT: [`scholarship.md`](.claude/skills/humanize-korean/references/scholarship.md) (v2.0 신규)
+전체 70 서브 패턴(+hold 1건)과 처방: [`ai-tell-taxonomy.md`](skills/humanize-korean/references/ai-tell-taxonomy.md) · [`rewriting-playbook.md`](skills/humanize-korean/references/rewriting-playbook.md) · 학술 인용 외부 SSOT: [`scholarship.md`](skills/humanize-korean/references/scholarship.md) (v2.0 신규)
 
 ## 심각도 & 품질 등급
 
@@ -193,7 +193,7 @@ Claude Code에서는 세 가지 방법 중 편한 쪽으로 사용합니다. Git
 /humanize [윤문할 텍스트 또는 파일 경로]
 ```
 
-옵션을 인자 끝에 자연어로 적을 수 있습니다: `장르: 칼럼`, `강도: 적극`, `최소심각도: S1`. 결과가 마음에 안 들면 `/humanize-redo "번역투만 다시"` 같은 식으로 재실행. 두 진입점은 이제 스킬입니다: [`humanize`](.claude/skills/humanize/SKILL.md) · [`humanize-redo`](.claude/skills/humanize-redo/SKILL.md)
+옵션을 인자 끝에 자연어로 적을 수 있습니다: `장르: 칼럼`, `강도: 적극`, `최소심각도: S1`. 결과가 마음에 안 들면 `/humanize-redo "번역투만 다시"` 같은 식으로 재실행. 두 진입점은 이제 스킬입니다: [`humanize`](skills/humanize/SKILL.md) · [`humanize-redo`](skills/humanize-redo/SKILL.md)
 
 **방법 C — Plugin / 마켓플레이스 (공식)**
 
@@ -300,7 +300,7 @@ Claude Code 세션 안에서 새 글을 붙여넣고 똑같이 부탁하면 됩�
 
 ## 웹 서비스 확장 (옵션)
 
-웹 버전은 별도 코드베이스로 운영 중입니다. 본 리포의 설계 문서 [`web-service-spec.md`](.claude/skills/humanize-korean/references/web-service-spec.md)는 산출물로 보존합니다 (설계 담당이던 `humanize-web-architect` 에이전트는 v2.1에서 은퇴).
+웹 버전은 별도 코드베이스로 운영 중입니다. 본 리포의 설계 문서 [`web-service-spec.md`](skills/humanize-korean/references/web-service-spec.md)는 산출물로 보존합니다 (설계 담당이던 `humanize-web-architect` 에이전트는 v2.1에서 은퇴).
 
 ## v2.3.1 — 경로 해석 · 런타임 경계 · 계약 정합 (2026-08)
 
@@ -382,7 +382,7 @@ v1.6이 KatFish/LREAD 정량 결정타로 잔존 약점을 잡았다면, v2.0은
 - **본진 신규 4건** — `A-16` 영어 대명사 직역(그/그녀/그것/그들 강박적 매핑) [S1, 김도훈 2009 + Cho et al. 2019 ACL] · `A-18` 관계대명사절 좌향 수식(관형구 3중 중첩) [S2, 박옥수 2018] · `A-19` 이중 조사 결합(-에서의·-에로의·-으로의·-에의) [S2, 김정우 2007, 단순 ~의 명시 제외] · `E-7` 청자 경어법 4단계 일관성 손실 [S2 estimated, 김혜영 2019, dialogue 가드]
 - **본진 보강 4건** — `A-15` 사역·인지·발화 동사 분리 구문 처방 / `A-7` light verb construction 일반화(have/make/take/give + 명사) / `F-4` 영어 명사화 접미사 4종 통합(-tion·-ment·-ness·-ity) / `E-2` 진행형 '~고 있다' 자동 매핑 처방
 - **post-editese metric-only 트랙** — Baker 1993·Toury 1995·Toral 2019의 단순화·정규화·간섭 3축을 14개 신규 metric으로 코드화(`metrics_v2.py`). 본진 패턴 ID 미부여 — caveat C3(한국어 정량 검증 부재)에 따라 metric only 트랙으로 분리. `interference_index` 합성 지표가 T1~T8 8개 시그널 가중 합산
-- **학술 인용 양면 보존** — 본진 `taxonomy.md` 패턴마다 `source_anchor` 한 줄(≤25자) + 학자 29명·Caveat 6건 verbatim은 외부 SSOT [`scholarship.md`](.claude/skills/humanize-korean/references/scholarship.md)에 보존. 룰북 슬림성 유지
+- **학술 인용 양면 보존** — 본진 `taxonomy.md` 패턴마다 `source_anchor` 한 줄(≤25자) + 학자 29명·Caveat 6건 verbatim은 외부 SSOT [`scholarship.md`](skills/humanize-korean/references/scholarship.md)에 보존. 룰북 슬림성 유지
 - **rewriting-playbook §1.X 신설** — Toral 2019 + 한국 PE 가이드라인(윤미선 외 2018·김혜림 2022·이상빈 2017·2018a·2018b·마승혜 2018) 통합 15항목 PE 체크리스트(PE1~PE15), 본진 패턴 ID 부착
 - **monolith·5인 정의 무수정 + 도구 호출 3회 캡 보존** — `humanize-monolith`·detector·rewriter·auditor·reviewer git diff 0줄. 헤더 토큰 +0.6KB만 차이
 
@@ -544,7 +544,7 @@ v1.3 발행 직후, 사용자께서 직접 Gemini API 키를 제공해 회차 3 
 | 3 | Gemini 직접 호출 4건 | C-10·D-7 (2) | D-4·J-2·I-4 (3) | 모델 분산 확보 + GPT/Gemini 차이 발견 |
 | **합계** | 8건 (3 모델 × 다양 장르) | **3건** | **6건** | v1.2 멈춤 → v1.3.1 풍부 |
 
-전체 v1.3.1 변경 이력: [`ai-tell-taxonomy.md` 버전 관리](.claude/skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)
+전체 v1.3.1 변경 이력: [`ai-tell-taxonomy.md` 버전 관리](skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)
 
 ## v1.3 — 서브 패턴 발굴 운영 체계 + 본진 신규 1건·보강 3건 (2026-04-25)
 
@@ -580,9 +580,9 @@ v1.1까지의 패턴 7건 승격은 사람이 한 번에 작업한 결과였습�
 
 회차 2의 핵심 발견은 **Gate 1.3 분산 보호장치가 진짜 외부 데이터에서도 정확히 작동했다**는 점입니다. occurrences·source distinct 정량 기준은 모두 통과한 강력 후보 3건이, 같은 모델·같은 기자 시리즈라는 정성 분산 검사로 hold 처리되어 단일 출처 노이즈가 본진을 오염시키지 않았습니다. v1.2 워크플로였다면 5개 후보 모두 reviewer JSON에 기록됐다가 run 종료 후 묻혔을 정보입니다. v1.3에서는 본진 보강 2건이 즉시 영구 반영되고, 강력 후보 3건이 풀에 hold로 누적되어 다음 회차의 자동 승격 트리거가 마련됐습니다.
 
-회차별 점검 로그는 운영 산출물이라 `_workspace/taxonomy_changelog.md`에 누적되며 (gitignored), 본진 변경은 [`ai-tell-taxonomy.md` 버전 관리](.claude/skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)에 영구 기록됩니다.
+회차별 점검 로그는 운영 산출물이라 `_workspace/taxonomy_changelog.md`에 누적되며 (gitignored), 본진 변경은 [`ai-tell-taxonomy.md` 버전 관리](skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)에 영구 기록됩니다.
 
-전체 v1.3 변경 이력: [`ai-tell-taxonomy.md` 버전 관리](.claude/skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)
+전체 v1.3 변경 이력: [`ai-tell-taxonomy.md` 버전 관리](skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)
 
 ## v1.2 — 작가 voice profile (2026-04-25)
 
@@ -630,7 +630,7 @@ v1.2는 [Issue #1](https://github.com/epoko77-ai/im-not-ai/issues/1)에서 8.5�
 
 v1.2는 코드 변경이 거의 없고 대부분 문서·정책·schema 추가입니다. voice profile 미주입 모드(default)에서는 v1.1과 동일한 6인 에이전트가 동일한 입출력으로 동작합니다. voice profile 주입 모드는 신기능이라 회귀 대상이 아니며, 외부 회귀 케이스 검증 결과는 v1.2.1에서 별도 hotfix로 반영합니다(외부 케이스 모집은 별도 Issue로 진행 예정).
 
-전체 v1.2 변경 이력: [`ai-tell-taxonomy.md` 버전 관리](.claude/skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)
+전체 v1.2 변경 이력: [`ai-tell-taxonomy.md` 버전 관리](skills/humanize-korean/references/ai-tell-taxonomy.md#버전-관리)
 
 ---
 
@@ -644,7 +644,7 @@ v1.2는 코드 변경이 거의 없고 대부분 문서·정책·schema 추가�
 
 ## 기여
 
-새로운 AI 티 패턴이나 회귀 사례를 발견했다면 [Issue](https://github.com/epoko77-ai/im-not-ai/issues)로 보고해 주세요. 실증 사례 2건 이상(가능하면 서로 다른 모델·장르·작가)이 함께면 분류학자 에이전트가 점검 회차에서 본진([`ai-tell-taxonomy.md`](.claude/skills/humanize-korean/references/ai-tell-taxonomy.md))으로 승격합니다. v1.3에서 운영했던 candidate pool은 핫패스 비용 문제로 v1.5에서 제거됐고, 외부 보고는 Issue 채널로 단순화됐습니다.
+새로운 AI 티 패턴이나 회귀 사례를 발견했다면 [Issue](https://github.com/epoko77-ai/im-not-ai/issues)로 보고해 주세요. 실증 사례 2건 이상(가능하면 서로 다른 모델·장르·작가)이 함께면 분류학자 에이전트가 점검 회차에서 본진([`ai-tell-taxonomy.md`](skills/humanize-korean/references/ai-tell-taxonomy.md))으로 승격합니다. v1.3에서 운영했던 candidate pool은 핫패스 비용 문제로 v1.5에서 제거됐고, 외부 보고는 Issue 채널로 단순화됐습니다.
 
 **외부 데이터 raw text 보존 정책 (v1.5~)** — 외부 매체 글(예: 뉴스 기사·블로그)을 검증 데이터로 제출할 때, 직접 raw text 인용이 저작권상 부담스러우면 **분석 노트만 보존하지 말고 안전한 인용 단위(문단 1~2개) + 출처 URL을 같이** 남겨주세요. v1.3 회차 2 뉴스핌 GPT 데이터가 분석 노트만 보존되고 raw text가 떨어져 v1.5 회귀 검증에서 재사용 불가했던 사례가 있었습니다. URL이 만료되면 검증 자산 자체가 사라지므로, fair use 범위의 짧은 인용 + URL 동시 보존이 권장됩니다.
 
