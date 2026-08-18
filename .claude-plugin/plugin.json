@@ -8,6 +8,12 @@
   "homepage": "https://github.com/epoko77-ai/im-not-ai",
   "repository": "https://github.com/epoko77-ai/im-not-ai",
   "license": "MIT",
-  "keywords": ["korean", "humanize", "ai-detector", "translationese", "윤문", "번역투"],
-  "skills": ["./.claude/skills/"]
+  "keywords": [
+    "korean",
+    "humanize",
+    "ai-detector",
+    "translationese",
+    "윤문",
+    "번역투"
+  ]
 }

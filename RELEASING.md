@@ -8,9 +8,9 @@ grep 전수 조사(2026-07-17, v2.0.1 기준)로 확정한 목록입니다.
 
 | # | 파일 | 위치 | 형식 |
 |---|------|------|------|
-| 1 | `.claude/skills/humanize-korean/SKILL.md` | frontmatter `version:` | `"X.Y.Z"` — **런타임 SSOT. 여기가 누락되면 사용자는 구버전을 실행합니다** |
-| 2 | `.claude/skills/humanize-korean/SKILL.md` | 제목(H1) + 상단 "버전 요약" 블록 | `vX.Y` |
-| 3 | `.claude/skills/humanize-korean/SKILL.md` | Phase 0 런타임 배너 (`humanize-korean vX.Y — {fast\|strict} 모드 …`) | `vX.Y` — 실행 시 사용자에게 그대로 출력됨 |
+| 1 | `skills/humanize-korean/SKILL.md` | frontmatter `version:` | `"X.Y.Z"` — **런타임 SSOT. 여기가 누락되면 사용자는 구버전을 실행합니다** |
+| 2 | `skills/humanize-korean/SKILL.md` | 제목(H1) + 상단 "버전 요약" 블록 | `vX.Y` |
+| 3 | `skills/humanize-korean/SKILL.md` | Phase 0 런타임 배너 (`humanize-korean vX.Y — {fast\|strict} 모드 …`) | `vX.Y` — 실행 시 사용자에게 그대로 출력됨 |
 | 4 | `README.md` | 제목(H1) + "아키텍처" 헤더 | `vX.Y.Z` / `vX.Y` |
 | 5 | `README.md` | 신규 릴리스 노트 절 (`## vX.Y — …`) | 절 추가 |
 | 6 | `CLAUDE.md` | 제목(H1) | `vX.Y.Z` |
@@ -32,7 +32,7 @@ grep 전수 조사(2026-07-17, v2.0.1 기준)로 확정한 목록입니다.
 
 ```bash
 grep -rn "v[0-9]\.[0-9]" \
-  .claude/skills/humanize-korean/SKILL.md \
+  skills/humanize-korean/SKILL.md \
   commands/ CLAUDE.md \
   | grep -v "역사\|이력\|변경 고지\|버전 요약"
 # README.md는 과거 릴리스 노트가 많으므로 제목·아키텍처 헤더만 육안 확인:

@@ -19,7 +19,7 @@ import unittest
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
-_SKILL = os.path.join(_ROOT, ".claude", "skills", "humanize-korean", "SKILL.md")
+_SKILL = os.path.join(_ROOT, "skills", "humanize-korean", "SKILL.md")
 _CLAUDE_PLUGIN = os.path.join(_ROOT, ".claude-plugin", "plugin.json")
 _COPILOT_PLUGIN = os.path.join(_ROOT, "plugin.json")
 _MARKETPLACE = os.path.join(_ROOT, ".claude-plugin", "marketplace.json")
