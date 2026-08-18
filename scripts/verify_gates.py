@@ -258,5 +258,13 @@ def main(argv: list[str] | None = None) -> int:
     return code
 
 
+# ── 콘솔 하드닝 (#84) ───────────────────────────────────────────────
+# Windows(cp949)에서 한글·em-dash 출력이 UnicodeEncodeError 로 죽는 것을 막는다.
+import os as _os  # noqa: E402
+import sys as _sys  # noqa: E402
+
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import console as _console  # noqa: E402
+
 if __name__ == "__main__":
-    sys.exit(main())
+    _sys.exit(_console.run_gate(main))
