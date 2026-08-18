@@ -13,7 +13,7 @@ ending_comma -86%, C-8 대구 -75%가 숨어 있었다. 이 스크립트는 문�
     P1 목표달성 — before z > +2.0인 어휘 S1 지표가 after에서 z <= +1.0으로
                   내려왔는가. 미달(> +2.0)·과교정(< -1.5)은 WARN.
     P2 전멸    — C-8 대구: before >= 5 AND after == 0 이면 FAIL.
-    P3 golden  — tests/golden/checks.run_checks() 실패 목록 (수치 주입 포함).
+    P3 golden  — scripts/checks.run_checks() 실패 목록 (수치 주입 포함).
     P4 터치율  — 원문 문장 중 after에 그대로 없는 비율 + 수치 소실 관찰.
                  게이트 아님, 보고만 (수치 소실은 문장 병합·표기 통합의
                  정상 부산물일 수 있어 exit code에 기여하지 않는다).
@@ -43,8 +43,10 @@ import sys
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
 _REFS = os.path.join(_ROOT, ".claude", "skills", "humanize-korean", "references")
-_GOLDEN = os.path.join(_ROOT, "tests", "golden")
-for _p in (_REFS, _GOLDEN):
+# checks 는 프로덕션 검사 구현이라 scripts/ 에 둔다(이 파일과 같은 디렉터리).
+# 예전에는 tests/golden/ 에 있어 프로덕션 게이트가 테스트 트리를 런타임 import 했고,
+# tests/ 를 뺀 선별 배포에서는 P3 golden 축이 통째로 죽었다. (#59)
+for _p in (_REFS, _HERE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -256,5 +258,13 @@ def main(argv: list[str] | None = None) -> int:
     return code
 
 
+# ── 콘솔 하드닝 (#84) ───────────────────────────────────────────────
+# Windows(cp949)에서 한글·em-dash 출력이 UnicodeEncodeError 로 죽는 것을 막는다.
+import os as _os  # noqa: E402
+import sys as _sys  # noqa: E402
+
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import console as _console  # noqa: E402
+
 if __name__ == "__main__":
-    sys.exit(main())
+    _sys.exit(_console.run_gate(main))

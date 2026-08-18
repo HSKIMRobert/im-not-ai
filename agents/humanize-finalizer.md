@@ -23,7 +23,8 @@ model: opus
 ### 입력
 - `original_path`: `_workspace/{run_id}/01_input.txt` — **원문**(shim 결합 전 순수 원문). 의미 대조의 기준.
 - `rewritten_path`: `_workspace/{run_id}/final.md` — monolith(또는 청크 재조립)가 만든 윤문본.
-- `diagnosis_path`: `_workspace/{run_id}/02_diagnosis.md` — 진단(무엇을 겨냥했는지. 보존 지침 포함).
+- `diagnosis_path`(**선택**): `_workspace/{run_id}/02_diagnosis.md` — 진단(무엇을 겨냥했는지. 보존 지침 포함).
+  **Light 경로는 진단을 생략하므로 이 파일이 없다.** 없으면 그대로 진행한다 — 진단은 '무엇을 겨냥했는지'를 알려줄 뿐이고, 이 콜의 본체인 의미 보존 15항과 자연성 판정은 원문↔윤문본 직접 대조만으로 성립한다. 없다고 중단하지 않는다.
 
 ### 출력
 - `_workspace/{run_id}/final.md` — 보정된 최종본으로 덮어쓴다(원본은 `final_pre_finalize.md`로 백업). 본문 끝 `<!-- HUMANIZE-SUMMARY -->` 블록 갱신.
@@ -32,7 +33,8 @@ model: opus
 ## 작업 순서 (한 콜, 도구 호출 4회 캡)
 
 ### 단계 1: 로드 (Read 3회)
-- Read `01_input.txt`(원문), `final.md`(윤문본), `02_diagnosis.md`(진단·보존 지침).
+- Read `01_input.txt`(원문), `final.md`(윤문본), 그리고 있으면 `02_diagnosis.md`(진단·보존 지침).
+- `02_diagnosis.md` 가 없으면 Read 를 시도하지 않는다(Light 경로 = 정상. 도구 호출도 2회로 줄어든다).
 
 ### 단계 2: 의미 보존 검사 (메모리) — 15항
 원문↔윤문본을 문단 단위로 나란히 대조한다. **diff가 아니라 직접 대조.**

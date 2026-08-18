@@ -1,11 +1,12 @@
 ---
 name: humanize-korean
-version: "2.3.0"
+version: "2.3.1"
 description: AI(ChatGPT·Claude·Gemini 등)가 쓴 한글 텍스트를 "사람이 쓴 글처럼" 윤문해주는 오케스트레이터 스킬. 번역투·영어 인용 과다·기계적 병렬·관용구·피동태 남용·접속사 남발·리듬 균일성·이모지/불릿 과다 등 10대 카테고리 70개 AI 티 패턴을 탐지·분류해 내용은 한 글자도 건드리지 않고 문체·리듬·표현만 자연스러운 한국어로 재작성한다. shim의 route_hint(light|standard|heavy)로 경로를 정해 잘 쓴 글은 1콜, 표준은 2콜, 중증·장문만 3+콜(진단→겨냥 윤문→finalize)로 처리한다. 트리거 — "AI 티 없애줘", "AI 같은 글 자연스럽게", "GPT/ChatGPT 문체", "AI 번역투 고쳐", "사람이 쓴 것처럼 윤문", "AI 윤문", "ChatGPT 티 제거", "한글 AI 탐지·윤문", "AI 글 사람처럼", "번역투 제거", "영어 인용 많은 글 윤문", "AI 글 티 안 나게", "휴머나이저", "humanize Korean", "AI detector bypass 한글". 후속 작업 — "특정 카테고리만 다시", "윤문 강도 조정", "장르 바꿔서", "이 문단만", "2차 윤문" 도 모두 이 스킬. 단순 맞춤법·오탈자 교정은 직접 처리, 번역은 번역 스킬, 내용 추가·삭제를 동반한 재작성은 별도 집필 스킬.
 ---
 
 # Humanize Korean — AI 한글 티 제거 오케스트레이터 (v2.3)
 
+> **v2.3.1** — 경로 해석·런타임 경계·계약 정합 수정 회차(외부 제보 반영). 기능 변경 없음.
 > **v2.3.0** — 구조 수렴 게이트(`verify_gates.py` 4축: 목표달성·대구 전멸·수치·golden) + 진단 슬림 인덱스(`diagnosis-rules.md`, taxonomy 83%↓). (v2.2: route_hint 3경로 + 단일 콜 우선)
 > 버전 히스토리·실측 근거·테스트 시나리오: [`references/design-notes.md`](references/design-notes.md)
 
@@ -42,6 +43,26 @@ humanize-korean v2.3 — 경로: {light|standard|heavy} ({route_hint|사용자 �
 - 당일 폴더가 없으면 NNN = 001. 있으면 마지막 NNN + 1.
 - 부분 재실행 신호("이 카테고리만 다시"·"2차 윤문")일 경우 기존 run_id 재사용 + heavy 경로로 자동 승급.
 
+## 스크립트 경로 규칙 (`${SKILL_ROOT}`)
+
+**스크립트는 절대경로로 부른다. cwd 기준 상대경로로 부르면 안 된다.**
+
+`scripts/*.py`는 설치 루트에 있고 cwd 는 사용자 작업 디렉터리다. 마켓플레이스 설치에서 둘은 **절대 일치하지 않는다.** 반면 `_workspace/` 같은 데이터 경로는 cwd 기준이다(run_id 규칙 참조). 두 기준이 한 명령줄에 섞이므로 스크립트 쪽만 절대경로로 고정한다.
+
+Phase 1 시작 전에 한 번 정한다.
+
+```bash
+SKILL_ROOT="$(cd -P "${CLAUDE_SKILL_DIR}" && cd ../../.. && pwd)"
+```
+
+`${CLAUDE_SKILL_DIR}`는 `<설치루트>/.claude/skills/humanize-korean` 이므로 상위 3단계가 설치 루트다.
+
+**`cd -P` 가 핵심이다.** 심링크 설치(`install.sh` 기본)에서는 스킬 디렉터리가 저장소를 가리키는 심링크라, 그냥 `cd` 하면 셸이 논리 경로를 유지해 엉뚱한 곳(홈 디렉터리)으로 올라간다. `-P` 로 물리 경로를 먼저 푼 뒤 올라가야 심링크·플러그인 양쪽에서 같은 답이 나온다. 이후 모든 스크립트 호출에 `${SKILL_ROOT}/scripts/...` 를 쓴다.
+
+**확인**: `ls "${SKILL_ROOT}/scripts/prepare_monolith_input.py"` 가 실패하면 경로 유도가 틀린 것이다. 이 경우 스크립트를 찾을 때까지 임의로 추측하지 말고, 정량 shim·게이트 없이 진행한다고 **사용자에게 알린 뒤** 계속한다. 조용히 건너뛰면 route_hint 와 철칙 #4 게이트가 사라진 것을 아무도 모른다.
+
+> `CLAUDE_PLUGIN_ROOT` 는 Bash 도구 안에서 비어 있는 경우가 확인됐다(#84). 이 변수에 의존하지 않는다.
+
 ## Phase 1: 입력 저장 + 정량 사전 점수 (input shim — 전 경로 공통)
 
 1. cwd 기준 `_workspace/{run_id}/` 생성
@@ -49,10 +70,10 @@ humanize-korean v2.3 — 경로: {light|standard|heavy} ({route_hint|사용자 �
 3. 첫 300자로 장르 자동 추정 (사용자 명시 시 우선)
 4. 사전 처리 shim을 Bash로 1회 실행:
    ```
-   python3 scripts/prepare_monolith_input.py --run-dir _workspace/{run_id} --genre {genre}
+   python3 ${SKILL_ROOT}/scripts/prepare_monolith_input.py --run-dir _workspace/{run_id} --genre {genre}
    ```
    - `--genre` 값은 영문 키: `essay | column | report | blog | abstract` (생략 시 `essay`). 장르 힌트 매핑: 칼럼→`column`, 리포트→`report`, 블로그→`blog`, 공적/기타→`essay`.
-   - `--run-dir`는 프로젝트 루트 기준 상대 경로 허용 (스크립트가 절대화). 그 외 인자: `--text`(run-dir 없이 즉석 실행 시 새 run 디렉토리 자동 생성), `--baseline`(baseline JSON 경로 override, 평소 불필요), `--diagnosis`(진단 텍스트 파일을 점수 블록 앞에 prepend — standard·heavy의 진단 결합용).
+   - `--run-dir`·`--diagnosis`의 상대 경로는 **cwd 기준**으로 해석된다(위 run_id 규칙과 동일 기준). 그 외 인자: `--text`(run-dir 없이 즉석 실행 시 새 run 디렉토리 자동 생성), `--baseline`(baseline JSON 경로 override, 평소 불필요), `--diagnosis`(진단 텍스트 파일을 점수 블록 앞에 prepend — standard·heavy의 진단 결합용).
    - 산출: `00_metrics.json`(정량 점수 + **`route_hint`**) + `01_input_with_metrics.txt`(점수 블록을 원문 앞에 붙인 결합 파일).
    - **graceful degrade 내장**: metrics 계산이 실패하면 shim이 점수 블록 없이 원문만 감싼 결합 파일을 쓰고 `00_metrics.error`를 남긴다. 이 경우 route_hint 없음 → standard 경로.
 5. `00_metrics.json`의 `route_hint`를 읽어 Phase 0 규칙대로 경로를 확정하고 상태 줄을 출력한다.
@@ -80,7 +101,7 @@ humanize-korean v2.3 — 경로: {light|standard|heavy} ({route_hint|사용자 �
    - 진단은 span을 세지 않는다. "무엇이 이 글을 지배하는가"를 판단한다(안정적).
 2. shim으로 진단을 monolith 입력 앞에 결합 (Bash — LLM 콜 아님):
    ```
-   python3 scripts/prepare_monolith_input.py --run-dir _workspace/{run_id} --genre {genre} --diagnosis _workspace/{run_id}/02_diagnosis.md
+   python3 ${SKILL_ROOT}/scripts/prepare_monolith_input.py --run-dir _workspace/{run_id} --genre {genre} --diagnosis _workspace/{run_id}/02_diagnosis.md
    ```
    → `01_input_with_metrics.txt`가 [진단 → 정량 블록 → 원문] 순으로 재생성된다.
 3. **윤문 1콜**: `humanize-monolith` 1회 호출 — **청킹 없음. 1만자급도 단일 콜이다.** → `final.md`.
@@ -99,7 +120,7 @@ Standard의 1과 동일 — `humanize-diagnostician` 1콜 → `02_diagnosis.md`.
 ### Phase P2: 겨냥 윤문
 1. shim으로 진단 결합 (Bash). **heavy에서만** `--chunk`를 함께 줄 수 있다:
    ```
-   python3 scripts/prepare_monolith_input.py --run-dir _workspace/{run_id} --genre {genre} --diagnosis _workspace/{run_id}/02_diagnosis.md --chunk
+   python3 ${SKILL_ROOT}/scripts/prepare_monolith_input.py --run-dir _workspace/{run_id} --genre {genre} --diagnosis _workspace/{run_id}/02_diagnosis.md --chunk
    ```
    - 분할 여부·경계는 100% shim(Python)이 정한다(문단·문장 경계, 헤딩 승격, 말미 각주 passthrough — 청킹 임계는 shim 관리).
    - 산출: `01_chunk_{NN}_input_with_metrics.txt` N개 + `chunk_manifest.json`.
@@ -108,7 +129,7 @@ Standard의 1과 동일 — `humanize-diagnostician` 1콜 → `02_diagnosis.md`.
 4. **청크 병렬(shim이 실제로 쪼갠 경우만)**:
    - 각 body 청크를 monolith로 **병렬 호출**(동시 최대 4). 입력·출력 파일명은 manifest의 **`input_file`·`rewritten_file` 필드를 그대로** 사용한다 — 파일명을 직접 조립하지 않는다(인덱싱 불일치 사고 방지).
    - 각 청크 콜은 같은 `quick_rules_path`(파일 참조)와 같은 `02_diagnosis.md`를 공유한다. **룰북·진단 전문을 청크 프롬프트에 복붙하지 않는다** — 재로드 비용이 청킹 토큰 폭발의 주범이었다(§설계 노트).
-   - 재조립: `python3 scripts/reassemble_chunks.py --run-dir _workspace/{run_id}` → `03_reassembled.md`(passthrough 원문 삽입 + 문자수 대사). 이걸 `final.md`로 삼는다.
+   - 재조립: `python3 ${SKILL_ROOT}/scripts/reassemble_chunks.py --run-dir _workspace/{run_id}` → `03_reassembled.md`(passthrough 원문 삽입 + 문자수 대사). 이걸 `final.md`로 삼는다.
    - 청크 경계 문체 이음매가 어색하면 경계 전후 2문단만 monolith로 국소 패치(전역 재작성 금지 — 의미 드리프트 유발).
    - **재청킹 주의**: `--chunk` 재실행 시 경계가 바뀌므로 기존 `02_chunk_*_rewritten.txt`는 shim이 자동 삭제한다(`stale_removed`). 청킹 후 입력을 수정하면 재청킹부터 다시 한다.
 
@@ -136,6 +157,8 @@ finalize는 추가 LLM 콜이다. 다음 조건에서만 실행한다:
 | 사용자가 검증·증적을 명시 요청 | 실행 |
 | light·standard의 그 외 모든 경우 | **생략** — `verify_gates.py` 결정적 게이트가 과윤문을 확인 |
 
+**진단 파일이 없을 때(Light 승급).** Light 경로는 `02_diagnosis.md`를 만들지 않는다. Light에서 승급 조건에 걸리면 **`diagnosis_path` 없이** `humanize-finalizer`를 호출한다 — 진단을 만들려고 콜을 추가하지 않는다. finalize의 본체(의미 보존 15항 + 자연성)는 원문↔윤문본 직접 대조로 성립하므로 진단 없이도 온전히 동작하며, 이 경우 도구 호출은 3회로 줄어든다. (Light가 승급하는 상황은 애초에 "예상보다 많이 고쳤다"이므로, 겨냥 대상을 새로 진단하는 것보다 고친 결과를 검증하는 것이 맞다.)
+
 ## Phase 2.5: 구조 게이트 (철칙 #4 — 결정적 검증, 전 경로 공통)
 
 monolith가 자체 보고한 변경률은 **참고값**이다. 철칙 #4의 게이트 판정은 코드가 한다.
@@ -143,7 +166,7 @@ monolith가 자체 보고한 변경률은 **참고값**이다. 철칙 #4의 게�
 윤문본이 나온 직후 Bash로 1회 실행:
 
 ```
-python3 scripts/verify_gates.py \
+python3 ${SKILL_ROOT}/scripts/verify_gates.py \
     --before _workspace/{run_id}/01_input.txt \
     --after  _workspace/{run_id}/final.md \
     --genre {genre}

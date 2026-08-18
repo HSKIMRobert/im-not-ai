@@ -85,4 +85,29 @@ for a in "$ROOT"/agents/*.md; do
 done
 rm -rf "$TMP_HOME/.claude"
 
+# ── 구버전 링크 정리 (#73) ─────────────────────────────────────────────
+# 이 저장소가 심은 링크만 지운다. 사용자 소유 파일·남의 링크는 절대 건드리지 않는다.
+mkdir -p "$TMP_HOME/.claude/agents"
+ln -s "$ROOT/agents/quick-rules-integrator.md" "$TMP_HOME/.claude/agents/quick-rules-integrator.md"   # 범위 밖(개발용)
+ln -s "$ROOT/agents/naturalness-reviewer.md"  "$TMP_HOME/.claude/agents/naturalness-reviewer.md"      # 은퇴 = dangling
+ln -s "/tmp/some-other-tool.md"               "$TMP_HOME/.claude/agents/other-tool.md"                # 남의 링크
+printf 'user owned\n' > "$TMP_HOME/.claude/agents/my-own-agent.md"                                    # 사용자 파일
+
+prune_output="$(run_installer --claude-only)"
+assert_contains "$prune_output" "pruned: $TMP_HOME/.claude/agents/quick-rules-integrator.md"
+assert_contains "$prune_output" "pruned: $TMP_HOME/.claude/agents/naturalness-reviewer.md"
+# 남의 것은 손대지 않는다 — 이 두 단언이 이 기능의 안전장치다
+assert_not_contains "$prune_output" "pruned: $TMP_HOME/.claude/agents/other-tool.md"
+assert_not_contains "$prune_output" "pruned: $TMP_HOME/.claude/agents/my-own-agent.md"
+
+# --all-agents 면 개발용도 정식 설치 대상이므로 지우지 않는다(dangling 만 정리)
+rm -rf "$TMP_HOME/.claude"
+mkdir -p "$TMP_HOME/.claude/agents"
+ln -s "$ROOT/agents/quick-rules-integrator.md" "$TMP_HOME/.claude/agents/quick-rules-integrator.md"
+ln -s "$ROOT/agents/naturalness-reviewer.md"  "$TMP_HOME/.claude/agents/naturalness-reviewer.md"
+all_prune_output="$(run_installer --claude-only --all-agents)"
+assert_not_contains "$all_prune_output" "pruned: $TMP_HOME/.claude/agents/quick-rules-integrator.md"
+assert_contains "$all_prune_output" "pruned: $TMP_HOME/.claude/agents/naturalness-reviewer.md"
+rm -rf "$TMP_HOME/.claude"
+
 echo "install flag tests passed"

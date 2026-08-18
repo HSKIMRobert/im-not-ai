@@ -85,6 +85,45 @@ prepare_target() {
   return 0
 }
 
+# 구버전 설치가 남긴 전역 에이전트 링크를 정리한다 (#73).
+#
+# 두 부류를 지운다.
+#   1) 이 저장소가 심었지만 지금 설치 범위 밖인 것 (개발용 5종 — #70 이전 설치본)
+#   2) dangling — 대상이 사라진 은퇴 에이전트 링크
+#      (ai-tell-detector·korean-style-rewriter·content-fidelity-auditor·
+#       naturalness-reviewer·humanize-web-architect 등 v2.1 은퇴분)
+#
+# **소유권 판별은 심링크 대상으로만 한다.** 이 저장소의 agents/ 를 가리키는
+# 심링크만 대상이며, 사용자가 직접 만든 파일이나 다른 도구가 심은 링크는
+# 절대 건드리지 않는다. 복사(copy) 설치는 소유 판별이 불가능하므로 건너뛴다.
+prune_stale_agents() {
+  local dir="$CLAUDE_HOME/agents"
+  [ -d "$dir" ] || return 0
+  local keep=" $INSTALLED_AGENTS "
+  local f base target pruned=0
+  for f in "$dir"/*.md; do
+    # glob 미매칭 시 리터럴이 들어오므로 심링크인 것만 통과
+    [ -L "$f" ] || continue
+    target="$(readlink "$f")"
+    case "$target" in
+      "$REPO/agents/"*) ;;   # 이 저장소가 심은 것 → 대상
+      *) continue ;;         # 남의 것 → 손대지 않음
+    esac
+    base="$(basename "$f" .md)"
+    if [ -e "$target" ]; then
+      # 대상이 살아있음 → 설치 범위 밖일 때만 정리
+      [ "$ALL_AGENTS" = 1 ] && continue
+      case "$keep" in *" $base "*) continue ;; esac
+    fi
+    # 여기 도달 = 범위 밖이거나 dangling
+    run rm -f "$f"
+    echo "pruned: $f"
+    pruned=$((pruned + 1))
+  done
+  [ "$pruned" -gt 0 ] && echo "note: 구버전·은퇴 에이전트 링크 ${pruned}건 정리됨"
+  return 0
+}
+
 install_one() {
   local src="$1" dest="$2"
   run mkdir -p "$(dirname "$dest")"
@@ -128,6 +167,11 @@ if [ "$DO_CLAUDE" != no ] && { [ "$DO_CLAUDE" = yes ] || has_claude_target; }; t
     for a in "${agents[@]}"; do
       install_one "$a" "$CLAUDE_HOME/agents/$(basename "$a")"
     done
+  fi
+  # 설치 후 정리 — 구버전 설치본이 남긴 범위 밖·은퇴 링크 제거 (#73).
+  # 심링크 모드에서만 동작한다(복사 설치는 소유 판별 불가).
+  if [ "$MODE" = symlink ]; then
+    prune_stale_agents
   fi
   if [ "$ALL_AGENTS" != 1 ]; then
     echo "note: 릴리스 회차용 개발 에이전트는 설치하지 않음 (전체 설치는 --all-agents)"
