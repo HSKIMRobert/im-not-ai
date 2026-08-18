@@ -2,7 +2,7 @@
   <img src="assets/social-preview.png" alt="im-not-ai — 한글 AI 티 제거기" width="820">
 </p>
 
-# Humanize KR — 한글 AI 티 제거기 v2.3.0
+# Humanize KR — 한글 AI 티 제거기 v2.3.1
 
 AI(ChatGPT · Claude · Gemini 등)가 쓴 한글 글을 **내용은 한 글자도 건드리지 않고** 문체 · 리듬 · 표현만 자연스러운 한국어로 되돌리는 Claude Code 스킬입니다. 
 
@@ -272,6 +272,39 @@ Claude Code 세션 안에서 새 글을 붙여넣고 똑같이 부탁하면 됩�
 ## 웹 서비스 확장 (옵션)
 
 웹 버전은 별도 코드베이스로 운영 중입니다. 본 리포의 설계 문서 [`web-service-spec.md`](.claude/skills/humanize-korean/references/web-service-spec.md)는 산출물로 보존합니다 (설계 담당이던 `humanize-web-architect` 에이전트는 v2.1에서 은퇴).
+
+## v2.3.1 — 경로 해석 · 런타임 경계 · 계약 정합 (2026-08)
+
+**외부 제보로 드러난 실행 불가 경로를 고친 패치 회차입니다. 기능·분류 체계 변경은 없습니다.**
+
+### 고친 것
+
+- **`--run-dir` 상대경로가 cwd 가 아닌 저장소 루트 기준으로 해석**되던 문제 ([#71](https://github.com/epoko77-ai/im-not-ai/issues/71), [@bukbuk82-alt](https://github.com/bukbuk82-alt)). SKILL.md 는 "모든 경로는 cwd 기준"이라 지시하는데 스크립트는 반대로 동작해, **심링크로 설치해 작업 디렉터리에서 스킬을 부르면 첫 실행부터 항상 실패**했습니다. 저장소 루트에서 돌리면 `cwd == PROJECT_ROOT` 라 내부에서는 드러나지 않던 버그입니다. `--diagnosis` 도 같은 기준으로 통일했고, 실패할 때마다 빈 `_workspace/{run_id}/` 가 쌓이던 부작용도 제거했습니다.
+
+- **프로덕션 게이트가 `tests/` 를 런타임 import** 하던 경계 위반 ([#59](https://github.com/epoko77-ai/im-not-ai/issues/59), [@andrea9292](https://github.com/andrea9292)). `verify_gates.py` 가 `tests/golden/checks.py` 를 불러 쓰고 있어, 런타임 파일만 선별 배포하면 **P3 golden 축이 통째로 죽었습니다.** `checks.py` 는 이름만 tests 아래 있었을 뿐 전부 프로덕션 검사 로직이라 `scripts/` 로 옮겼습니다.
+
+- **Light 경로 finalize 승급이 실행 불가**하던 계약 공백 ([#54](https://github.com/epoko77-ai/im-not-ai/issues/54), [@andrea9292](https://github.com/andrea9292)). Light 는 `02_diagnosis.md` 를 만들지 않는데 finalizer 가 그 파일을 필수로 요구했습니다. `diagnosis_path` 를 선택으로 바꾸고, **진단 콜을 추가하지 않는 쪽**을 의도로 명문화했습니다 — finalize 본체(의미 보존 15항 + 자연성)는 원문↔윤문본 직접 대조로 성립합니다.
+
+- **내용 앵커 유실** ([#74](https://github.com/epoko77-ai/im-not-ai/issues/74), [@ruddyscent](https://github.com/ruddyscent)). 윤문 콜이 편집 **전에** 문장별 핵심 내용 명사를 기록하고, 앵커가 사라지는 edit 은 즉시 롤백하는 `anchor_ledger` 계약을 배포 경로 5곳에 적용했습니다. 실측(opus-5 × `fx_guard_overedit`, 계약 적용 전후 각 11 run): **보호 어휘 유실 2회 → 0회.**
+
+- **전역 설치 범위 한정** ([#70](https://github.com/epoko77-ai/im-not-ai/pull/70), [@penta505](https://github.com/penta505)) — 스킬이 실제로 쓰는 런타임 4종만 설치(`--all-agents` 로 전체). **구버전 설치본 자동 정리**([#73](https://github.com/epoko77-ai/im-not-ai/issues/73), 원안 [@yswyang0228](https://github.com/yswyang0228)) — 재실행 시 범위 밖·은퇴 dangling 링크를 해제합니다. 소유권은 심링크 대상으로만 판별해 사용자 파일·타 도구 링크는 건드리지 않습니다.
+
+- **배포 정합** ([@penta505](https://github.com/penta505)) — fixture 가 원문에 없는 문자열을 보존 대상으로 요구하던 것([#67](https://github.com/epoko77-ai/im-not-ai/pull/67)), 매니페스트 버전 드리프트([#68](https://github.com/epoko77-ai/im-not-ai/pull/68)), SKILL.md 에이전트 서술 불일치([#69](https://github.com/epoko77-ai/im-not-ai/pull/69)). 각각 회귀 테스트를 동반했고, 셸 테스트가 이 회차에 CI 에 최초 등록됐습니다.
+
+- fixture 가 taxonomy **D-7("변환 공식")이 제거를 지시하는 표현**("패러다임의 전환")을 보존 대상으로 요구하던 결함. 스킬이 규칙을 올바르게 지킬 때마다 fidelity 위반으로 채점되고 있었습니다.
+
+### 검증
+
+- `pytest` **223 passed** (신규 회귀: 경로 해석 5건 · 런타임 경계 5건 · 텍스트 위생 17건 · 계약 정합)
+- 게이트가 **`tests/` 없는 트리에서 전 축 동작** 실측 — P3 golden PASS
+- 설치 정리는 격리 환경에서 사용자 파일·타 도구 링크 불가침 확인
+
+### 함께 들어간 것
+
+- **텍스트 위생** `scripts/sanitize_text.py` — 제로폭·bidi·태그 문자 제거, 한글 NFD → NFC 정규화. shim 이 자동 적용(`--no-sanitize` 로 해제). NFD 분해 한글은 글자수가 최대 3배로 잡혀 변경률 게이트가 "전 글자 변경"으로 오판하던 잠복 사고를 막습니다. **AI 워터마크와 무관합니다** — 사유는 `CLAUDE.md` 「AI 워터마킹에 대한 입장」 참조.
+- **품질 기준선 계측** `scripts/eval_baseline.py` · `eval_compare.py` + `docs/watermark-baseline-runbook.md`. K회 반복의 자체 표준편차를 잡음 바닥으로 삼아 그걸 넘는 변화만 유의하다고 표시합니다.
+
+기여해주신 분들은 [CONTRIBUTORS.md](CONTRIBUTORS.md) 에 기록했습니다.
 
 ## v2.3 — 구조 수렴 게이트 · 진단 슬림 인덱스 (2026-07)
 
