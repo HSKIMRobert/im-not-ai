@@ -210,6 +210,17 @@ Codex에서 `$humanize-korean`으로 발동합니다(또는 `/skills` 메뉴). C
 opencode 로 윤문하는 커뮤니티 제작 포트입니다.
 - 접속: [im-not-ai-ocx.illuwa.click](https://im-not-ai-ocx.illuwa.click/)
 
+### 커뮤니티 포트
+
+공식 지원 런타임은 **Claude Code · Codex · Gemini CLI** 세 가지입니다. 저희가 라이브로 검증할 수 있는 범위를 넘어서면 "공식 지원" 을 표기하지 않는다는 정책이라, 그 밖의 런타임은 커뮤니티 포트로 안내합니다.
+
+| 포트 | 런타임 | 제작 |
+|---|---|---|
+| [`Squirbie/im-not-ai-codex`](https://github.com/Squirbie/im-not-ai-codex) | Codex Desktop 어댑터 | @Squirbie |
+| [im-not-ai-ocx](https://im-not-ai-ocx.illuwa.click/) | opencode Web UI | 커뮤니티 |
+
+포트를 만드셨다면 Issue 로 알려주세요 — 확인 후 이 표에 추가합니다. 본체를 건드리지 않는 격리 설계와, 룰북 사본이 본진과 어긋나면 깨지는 드리프트 검사를 갖추는 것을 권장합니다([PR #61](https://github.com/epoko77-ai/im-not-ai/pull/61) 이 좋은 참고입니다).
+
 ### 4. 결과 확인
 
 정량 사전 채점이 산출한 `route_hint`에 따라 세 경로 중 하나로 처리합니다(사용자 명시가 오버라이드).
