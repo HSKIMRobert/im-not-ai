@@ -55,8 +55,16 @@ MODAL = {"당위": DEONTIC_RE, "추측": HEDGE_RE}
 
 # 짝 문장이 "같은 문장의 다른 표현"인지 판정하는 하한. 정렬 아티팩트(엉뚱한 짝)를 거른다.
 MIN_PAIR_SIM = 0.3
-# 후보 문장에 원문 문장에 없던 내용어가 이만큼 있으면 병합으로 보고 건드리지 않는다.
-MERGE_FOREIGN_TOKENS = 2
+# 병합 판정 — 두 기준을 **모두** 만족할 때만 병합으로 본다.
+#
+# 처음에는 "원문 문장에 없던 내용어 2개 이상"만 봤는데, 실측에서 정상 윤문이 무더기로
+# 걸렸다. "증가할 것으로 보인다는 견해가" → "늘어날 거라는 관측이"는 어휘를 셋이나 바꾸지만
+# 병합이 아니다. 그 오탐 때문에 되돌려야 할 문장이 그대로 나갔다.
+#
+# 병합은 **문장이 길어지는** 현상이므로 길이비를 함께 본다. 더 정확한 신호는 정렬 구조다 —
+# 병합되면 이웃 원문 문장이 짝을 잃고 gap(삭제)으로 남는다. 그쪽을 1차 기준으로 쓴다.
+MERGE_FOREIGN_TOKENS = 3
+MERGE_LEN_RATIO = 1.6
 
 _WORD_RE = re.compile(r"[^\w]", re.UNICODE)
 
@@ -108,19 +116,30 @@ def align(before: list[str], after: list[str]) -> list[tuple[str, str]]:
 
 
 def find_losses(before: str, after: str) -> list[dict]:
-    """원문 문장의 서법이 짝 문장에서 사라진 경우를 찾는다."""
+    """원문 문장의 서법이 짝 문장에서 사라진 경우를 찾는다.
+
+    각 손실에 `neighbor_gap`을 함께 싣는다 — 바로 옆 원문 문장이 짝을 잃었다면
+    이 문장이 그 내용을 흡수한 것(병합)일 수 있다는 표시다.
+    """
     pairs = align(_m._split_sentences(before), _m._split_sentences(after))
     out: list[dict] = []
-    for b, a in pairs:
+    for idx, (b, a) in enumerate(pairs):
         b, a = b.strip(), a.strip()
         # 삭제(짝 없음)는 서법 문제가 아니라 내용 소실 — 다른 축이 본다.
         if not b or not a:
             continue
         if _jaccard(b, a) < MIN_PAIR_SIM:
             continue
+        neighbor_gap = any(
+            pairs[j][0].strip() and not pairs[j][1].strip()
+            for j in (idx - 1, idx + 1)
+            if 0 <= j < len(pairs)
+        )
         for kind, rx in MODAL.items():
             if rx.search(b) and not rx.search(a):
-                out.append({"kind": kind, "before": b, "after": a})
+                out.append(
+                    {"kind": kind, "before": b, "after": a, "neighbor_gap": neighbor_gap}
+                )
                 break
     return out
 
@@ -137,7 +156,11 @@ def restore(before: str, after: str) -> tuple[str, list[dict], list[dict]]:
         foreign = [
             t for t in _tokens(loss["after"]) - _tokens(loss["before"]) if len(t) > 1
         ]
-        if len(foreign) >= MERGE_FOREIGN_TOKENS:
+        longer = len(loss["after"]) >= len(loss["before"]) * MERGE_LEN_RATIO
+        merged = loss.get("neighbor_gap") or (
+            longer and len(foreign) >= MERGE_FOREIGN_TOKENS
+        )
+        if merged:
             skipped.append({**loss, "reason": "문장 병합 의심 — 되돌리면 다른 명제가 사라진다"})
             continue
         result = result.replace(loss["after"], loss["before"], 1)
