@@ -381,6 +381,45 @@ class ModalityGateTests(unittest.TestCase):
             code = verify_gates.main(["--before", b, "--after", a])
         self.assertGreaterEqual(code, 1)
 
+    def test_pairwise_catches_loss_masked_by_offsetting_gain(self) -> None:
+        """상쇄 은폐 — 총수 기준이면 통과하지만 실제로는 서법이 바뀐 경우.
+
+        한 문장에서 유보가 단정으로 바뀌고, 무관한 다른 문장에서 사전 어휘가
+        우연히 생기면 총수는 그대로다. 문장쌍 판정은 이걸 잡아야 한다.
+        """
+        before = "고용 효과는 제한적일 것으로 판단된다. 통계는 다음 주에 나온다."
+        after = "고용 효과는 제한적이다. 통계는 다음 주에 나올 수 있다."
+        # 총수는 상쇄돼 변화 없음 — 옛 기준이라면 통과했다.
+        self.assertEqual(
+            verify_gates.count_modality(before)[1],
+            verify_gates.count_modality(after)[1],
+        )
+        with tempfile.TemporaryDirectory() as d:
+            b = _write(d, "b.md", before)
+            a = _write(d, "a.md", after)
+            code = verify_gates.main(["--before", b, "--after", a])
+        self.assertGreaterEqual(code, 1, "상쇄에 가려진 서법 소실을 놓쳤다")
+
+    def test_pairwise_ignores_deleted_cliche_sentence(self) -> None:
+        """카탈로그가 삭제를 지시한 상투구 문장은 서법 위반이 아니다.
+
+        D-2 "시사하는 바가 크다" 삭제는 총수 기준에서는 곧바로 완곡 감소였다.
+        문장이 통째로 사라지면 짝이 없으므로 문장쌍 판정의 대상이 아니다.
+        """
+        before = (
+            "국내 클라우드 시장은 지난해 크게 성장했다. "
+            "이는 시사하는 바가 크다고 할 수 있다. "
+            "사업자들은 투자를 늘리고 있다."
+        )
+        after = (
+            "국내 클라우드 시장은 지난해 크게 성장했다. "
+            "사업자들은 투자를 늘리고 있다."
+        )
+        from restore_modality import find_losses
+
+        confident = [l for l in find_losses(before, after) if not l.get("low_sim")]
+        self.assertEqual(confident, [], f"삭제된 상투구를 위반으로 셌다: {confident}")
+
     def test_gate_ok_when_modality_kept(self) -> None:
         """이동만 한 경우 P5는 통과한다.
 

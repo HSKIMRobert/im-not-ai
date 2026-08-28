@@ -17,9 +17,10 @@ ending_comma -86%, C-8 대구 -75%가 숨어 있었다. 이 스크립트는 문�
     P4 터치율  — 원문 문장 중 after에 그대로 없는 비율 + 수치 소실 관찰.
                  게이트 아님, 보고만 (수치 소실은 문장 병합·표기 통합의
                  정상 부산물일 수 있어 exit code에 기여하지 않는다).
-    P5 서법    — 당위("~해야 한다")·추측("~할 수 있다") 표지 총수가 줄면 WARN.
-                 줄었다 = 필자가 요구·유보한 것을 단정으로 바꿨을 가능성.
-                 I-4 처방은 '이동'만 허용하므로 총수가 보존돼야 정상이다.
+    P5 서법    — 원문·윤문본을 문장 정렬해, 짝 문장에서 당위("~해야 한다")·추측
+                 ("~할 수 있다")이 사라졌으면 WARN. 총수가 아니라 **문장쌍**으로 본다
+                 — 총수는 오검출과 실손실이 상쇄돼 진짜 위반을 가린다.
+                 짝 유사도가 낮은 건은 보고만 하고 exit code에 넣지 않는다.
                  늘어나는 것은 대상 아님(당위 주입은 P3 golden 소관).
 
 Exit code (verify_change_rate.py와 의미 동일):
@@ -332,21 +333,55 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[P4 수치소실] 관찰: {dropped} "
               f"(문장 병합·표기 통합이면 정상 — exit 미반영, 확인 요망)")
 
-    # --- P5 서법 보존 (당위·추측 표지 총수) -------------------------------
+    # --- P5 서법 보존 (문장쌍 판정) ---------------------------------------
+    #
+    # 총수 비교에서 문장쌍 판정으로 바꿨다. 총수는 **위치를 안 보기 때문에 오검출과
+    # 실손실이 서로 상쇄된다** — 윤문이 다른 문장에서 사전 어휘를 우연히 만들어내면
+    # ("재빨리"→"시급히") 진짜 서법 소실이 net 0으로 가려진다. 한 표현이 표지 2개로
+    # 세지는 이중 계수도 있어, 동력을 보존한 정상 윤문이 false WARN을 냈다.
+    #
+    # 문장쌍은 "어느 문장의 어떤 서법이 사라졌는가"를 보므로 상쇄가 구조적으로 불가능하다.
+    # 덤으로 카탈로그 충돌 상당수가 자동 해소된다 — D-2·D-3의 상투구 삭제는 문장이 통째로
+    # 사라지거나 짝이 없어 판정 대상 밖이다(총수 기준에서는 곧바로 위반이었다).
+    #
+    # 정렬 코드는 restore_modality가 이미 갖고 있다(같은 사전을 쓰는 단일 출처).
+    # 순환 import를 피하려고 함수 안에서 늦게 불러온다.
+    from restore_modality import find_losses  # noqa: PLC0415
+
+    losses = find_losses(before, after)
+    confident = [l for l in losses if not l.get("low_sim")]
+    uncertain = [l for l in losses if l.get("low_sim")]
+    modality_fail = len(confident) > MODALITY_TOLERANCE
+    warn = warn or modality_fail
     deo_b, hed_b = count_modality(before)
     deo_a, hed_a = count_modality(after)
-    deo_lost = deo_b - deo_a
-    hed_lost = hed_b - hed_a
-    modality_fail = deo_lost > MODALITY_TOLERANCE or hed_lost > MODALITY_TOLERANCE
-    warn = warn or modality_fail
     report["modality"] = {
-        "deontic": {"before": deo_b, "after": deo_a},
-        "hedge": {"before": hed_b, "after": hed_a},
-        "verdict": ("FAIL — 서법 표지 감소(당위·추측을 단정으로 바꿨을 수 있음)"
+        "lost_pairs": [
+            {"kind": l["kind"], "before": l["before"], "after": l["after"]}
+            for l in confident
+        ],
+        # 짝 유사도가 낮아 같은 문장인지 확신할 수 없는 건은 exit code에 넣지 않는다.
+        # 다만 조용히 버리지도 않는다 — 진짜 소실이 여기 섞여 있을 수 있다(P4와 같은 정책).
+        "uncertain_pairs": [
+            {"kind": l["kind"], "before": l["before"], "after": l["after"]}
+            for l in uncertain
+        ],
+        # 총수는 참고용으로만 남긴다. 판정 근거가 아니다.
+        "counts": {
+            "deontic": {"before": deo_b, "after": deo_a},
+            "hedge": {"before": hed_b, "after": hed_a},
+        },
+        "verdict": (f"FAIL — 서법 소실 {len(confident)}문장"
                     if modality_fail else "OK"),
     }
-    print(f"[P5 서법] 당위 {deo_b} → {deo_a} / 완곡 {hed_b} → {hed_a} — "
+    print(f"[P5 서법] 소실 {len(confident)}문장 "
+          f"(참고 총수: 당위 {deo_b}→{deo_a} / 완곡 {hed_b}→{hed_a}) — "
           f"{report['modality']['verdict']}")
+    for l in confident[:3]:
+        print(f"          [{l['kind']}] {l['before'][:34]} → {l['after'][:34]}")
+    if uncertain:
+        print(f"          관찰: 짝 유사도가 낮아 판정 보류한 건 {len(uncertain)}건 "
+              f"(exit 미반영 — 확인 요망)")
 
     # --- 통합 판정 --------------------------------------------------------
     if abort:
