@@ -286,6 +286,7 @@ class ModalityGateTests(unittest.TestCase):
             "충분한 듯하다",
             "가능성도 배제할 수 없다",
             "성장률을 2.7%로 전망했다",
+            "개선될 수도 있다",
             "비용이 늘어날 것으로 추정된다",
             "개선될 여지가 있다",
         ):
@@ -301,16 +302,16 @@ class ModalityGateTests(unittest.TestCase):
         P5가 I-4 위반(당위 삭제·서법 치환)을 검출할 수 없었다.
         """
         for marker in (
-            "지금이야말로 제도의 틀을 다시 짤 때다",
-            "이제 나설 때입니다",
-            "제도의 틀을 다시 짤 때가 왔다",
-            "제도를 손볼 시점이다",
+            "정부는 공유 플랫폼을 구축해야 한다",
+            "제도의 틀을 다시 짜야 합니다",
             "규제 정비가 시급하다",
             "대책이 필요하다",
+            "설계할 필요가 있다",
             "정비가 바람직하다",
-            "대응이 불가피하다",
-            "시급히 손봐야만 한다",
-            "대책 마련을 촉구했다",
+            "지금 손봐야만 한다",
+            "정비가 요구된다",
+            "규제를 풀지 않으면 안 된다",
+            "우리는 제도를 함께 손질한다고 촉구한다",
         ):
             with self.subTest(marker=marker):
                 self.assertGreaterEqual(
@@ -325,6 +326,18 @@ class ModalityGateTests(unittest.TestCase):
             "바로 그때다",
             "이때다 싶어 뛰었다",
             "그건 다른 일이다",
+            # 아래는 **의도적으로 사전에서 뺀** 갈래다(적대적 검토에서 오검출 확인).
+            # -ㄹ 때다/시점이다: 순수 시점 서술과 형태가 같고, D-6이 승인한 편집을
+            #   서법 소실로 오판하게 만든다.
+            "그 사진은 내가 어릴 때다",
+            "문제가 터진 건 방심했을 때다",
+            "지금은 중요한 시점이다",
+            # 부사형: 완료된 행위의 방식이지 당위가 아니다.
+            "환자를 시급히 이송했다",
+            "공사가 불가피하게 연기됐다",
+            # 맨몸 명사·제3자 발화 보도: 필자의 서법이 아니다.
+            "시민단체의 촉구 집회가 열렸다",
+            "정부에 대책 마련을 촉구했다",
         ):
             with self.subTest(text=text):
                 self.assertEqual(
@@ -343,6 +356,17 @@ class ModalityGateTests(unittest.TestCase):
             "양측의 견해차가 컸다",
             "관측 장비를 새로 들였다",
             "결국 합의에 이르렀다",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    verify_gates.count_modality(text)[1], 0, f"완곡 과탐: {text}"
+                )
+
+    def test_hedge_inventory_excludes_perception_and_compound_nouns(self) -> None:
+        """맨몸 어휘로 넓히면 지각 동사·복합명사가 걸린다(적대적 검토에서 확인)."""
+        for text in (
+            "창밖으로 남산이 보인다",
+            "성장 가능성 평가 지표를 개편했다",
         ):
             with self.subTest(text=text):
                 self.assertEqual(

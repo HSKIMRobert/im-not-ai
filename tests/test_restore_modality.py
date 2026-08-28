@@ -65,6 +65,37 @@ class RestoreModalityTests(unittest.TestCase):
         self.assertEqual(restored, [])
         self.assertEqual(out, after)
 
+    def test_skips_when_sentence_split_in_two(self) -> None:
+        """한 문장이 둘로 쪼개진 경우 되돌리면 나머지 조각이 남아 명제가 중복된다.
+
+        회귀 방지(적대적 검토 지적): 병합 가드가 before쪽 gap만 봐서 분할을 놓쳤고,
+        복원 결과가 "…지적도 나온다. 그런 지적도 나온다."가 됐다.
+        """
+        before = "정부 개입이 시장 가격을 왜곡할 수 있다는 지적도 나온다."
+        after = "정부 개입이 시장 가격을 왜곡한다. 그런 지적도 나온다."
+        out, restored, skipped = rm.restore(before, after)
+        self.assertEqual(restored, [])
+        self.assertEqual(out, after)
+        self.assertIn("분할", skipped[0]["reason"])
+
+    def test_summary_block_does_not_hide_loss(self) -> None:
+        """요약 블록 안의 원문 인용이 정렬 짝을 훔쳐 손실을 가리면 안 된다."""
+        before = "성장세는 꺾일 수 있다."
+        after = "성장세는 꺾인다.\n\n<!-- HUMANIZE-SUMMARY\n원문: 성장세는 꺾일 수 있다.\n-->"
+        out, restored, _ = rm.restore(before, after)
+        self.assertEqual(len(restored), 1)
+        self.assertIn("꺾일 수 있다", out.split("<!--")[0])
+        self.assertIn("HUMANIZE-SUMMARY", out, "요약 블록은 보존해야 한다")
+
+    def test_low_similarity_pair_is_reported_not_silent(self) -> None:
+        """유사도 미달로 손대지 않은 손실도 보고에는 남아야 한다."""
+        before = "이 정책의 고용 효과는 제한적일 것으로 판단된다."
+        after = "정책 고용 효과는 미미하다."
+        _, restored, skipped = rm.restore(before, after)
+        self.assertEqual(restored, [])
+        self.assertTrue(skipped, "조용히 탈락하면 손실 추적이 불가능하다")
+        self.assertIn("유사도", skipped[0]["reason"])
+
     def test_ignores_unrelated_sentence_pairs(self) -> None:
         """유사도가 낮은 짝은 정렬 아티팩트 — 서법 판정 대상이 아니다."""
         before = "규제안의 영향은 아직 단정하기 어렵다."

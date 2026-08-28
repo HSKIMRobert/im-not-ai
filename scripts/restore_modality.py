@@ -51,6 +51,7 @@ for _p in (_REFS, _HERE):
 
 import metrics_v2 as _m  # noqa: E402
 from verify_gates import DEONTIC_RE, HEDGE_RE  # noqa: E402  (사전은 게이트와 단일 출처)
+import checks as _checks  # noqa: E402
 
 MODAL = {"당위": DEONTIC_RE, "추측": HEDGE_RE}
 
@@ -132,24 +133,49 @@ def find_losses(before: str, after: str) -> list[dict]:
     각 손실에 `neighbor_gap`을 함께 싣는다 — 바로 옆 원문 문장이 짝을 잃었다면
     이 문장이 그 내용을 흡수한 것(병합)일 수 있다는 표시다.
     """
-    pairs = align(_m._split_sentences(before), _m._split_sentences(after))
+    # ⚠️ `<!-- HUMANIZE-SUMMARY -->` 블록을 떼고 정렬한다. 블록 안에는 원문 인용이 들어가는데,
+    # 그 줄이 본문 문장 대신 정렬 짝이 되어 **손실이 통째로 가려졌다**(요약본이 짝을 훔친다).
+    # verify_gates는 이미 떼고 비교하는데 복원기만 안 떼던 비대칭이었다.
+    before = _checks.strip_summary_block(before)
+    after_body = _checks.strip_summary_block(after)
+    pairs = align(_m._split_sentences(before), _m._split_sentences(after_body))
     out: list[dict] = []
     for idx, (b, a) in enumerate(pairs):
         b, a = b.strip(), a.strip()
         # 삭제(짝 없음)는 서법 문제가 아니라 내용 소실 — 다른 축이 본다.
         if not b or not a:
             continue
-        if _sim(b, a) < MIN_PAIR_SIM:
-            continue
+        low_sim = _sim(b, a) < MIN_PAIR_SIM
+        # 이웃 원문 문장이 짝을 잃었다 = 이 문장이 그 내용을 흡수했을 수 있다(병합).
         neighbor_gap = any(
             pairs[j][0].strip() and not pairs[j][1].strip()
+            for j in (idx - 1, idx + 1)
+            if 0 <= j < len(pairs)
+        )
+        # 반대 방향도 봐야 한다. 한 원문 문장이 **둘로 쪼개지면** after 쪽에 짝 없는 문장이
+        # 삽입된다. 이때 되돌리면 쪼개진 나머지 조각이 남아 명제가 중복된다 — 실측:
+        # "…왜곡할 수 있다는 지적도 나온다." → "…왜곡한다. 그런 지적도 나온다." 를 복원하면
+        # "지적도 나온다"가 두 번 나온다. 삽입 이웃이 원문 문장의 내용어를 나눠 가졌을 때만
+        # 분할로 본다(무관한 새 문장 삽입까지 막지 않도록).
+        b_tokens = _tokens(b)
+        split_gap = any(
+            (not pairs[j][0].strip())
+            and pairs[j][1].strip()
+            and len([t for t in _tokens(pairs[j][1]) & b_tokens if len(t) > 1]) >= 2
             for j in (idx - 1, idx + 1)
             if 0 <= j < len(pairs)
         )
         for kind, rx in MODAL.items():
             if rx.search(b) and not rx.search(a):
                 out.append(
-                    {"kind": kind, "before": b, "after": a, "neighbor_gap": neighbor_gap}
+                    {
+                        "kind": kind,
+                        "before": b,
+                        "after": a,
+                        "neighbor_gap": neighbor_gap,
+                        "split_gap": split_gap,
+                        "low_sim": low_sim,
+                    }
                 )
                 break
     return out
@@ -161,6 +187,11 @@ def restore(before: str, after: str) -> tuple[str, list[dict], list[dict]]:
     restored: list[dict] = []
     skipped: list[dict] = []
     for loss in losses:
+        # 유사도가 낮은 짝은 정렬 아티팩트일 수 있어 손대지 않는다. 다만 **보고는 남긴다** —
+        # 예전에는 조용히 탈락시켜, 진짜 손실이 어디로 갔는지 흔적조차 남지 않았다.
+        if loss.get("low_sim"):
+            skipped.append({**loss, "reason": "짝 유사도 낮음 — 정렬 아티팩트 가능성"})
+            continue
         if result.count(loss["after"]) != 1:
             skipped.append({**loss, "reason": "결과에서 유일하게 특정되지 않음"})
             continue
@@ -168,11 +199,20 @@ def restore(before: str, after: str) -> tuple[str, list[dict], list[dict]]:
             t for t in _tokens(loss["after"]) - _tokens(loss["before"]) if len(t) > 1
         ]
         longer = len(loss["after"]) >= len(loss["before"]) * MERGE_LEN_RATIO
-        merged = loss.get("neighbor_gap") or (
-            longer and len(foreign) >= MERGE_FOREIGN_TOKENS
+        merged = (
+            loss.get("neighbor_gap")
+            or loss.get("split_gap")
+            or (longer and len(foreign) >= MERGE_FOREIGN_TOKENS)
         )
         if merged:
-            skipped.append({**loss, "reason": "문장 병합 의심 — 되돌리면 다른 명제가 사라진다"})
+            skipped.append(
+                {
+                    **loss,
+                    "reason": "문장 분할 의심 — 되돌리면 명제가 중복된다"
+                    if loss.get("split_gap")
+                    else "문장 병합 의심 — 되돌리면 다른 명제가 사라진다",
+                }
+            )
             continue
         result = result.replace(loss["after"], loss["before"], 1)
         restored.append(loss)
