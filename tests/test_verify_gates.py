@@ -273,6 +273,45 @@ class ModalityGateTests(unittest.TestCase):
         self.assertEqual(verify_gates.count_modality(before)[1], 1)
         self.assertEqual(verify_gates.count_modality(after)[1], 0)
 
+    def test_hedge_inventory_covers_observation_endings(self) -> None:
+        """완곡 사전은 관측·추측 종결을 폭넓게 잡아야 한다.
+
+        구 사전(수 있다·것으로 보인다·가능성이 있다·ㄹ 수도)은 실측 입력의 완곡 7건 중
+        1건만 셌다. 게이트가 서법 보존을 표방하면서 위반을 못 보던 상태라, 유보를 단정으로
+        바꾼 출력이 그대로 통과했다.
+        """
+        for marker in (
+            "낮은 것으로 판단된다",
+            "타당하다고 여겨진다",
+            "충분한 듯하다",
+            "가능성도 배제할 수 없다",
+            "성장률을 2.7%로 전망했다",
+            "비용이 늘어날 것으로 추정된다",
+            "개선될 여지가 있다",
+        ):
+            with self.subTest(marker=marker):
+                self.assertGreaterEqual(
+                    verify_gates.count_modality(marker)[1], 1, f"완곡 미검출: {marker}"
+                )
+
+    def test_hedge_inventory_excludes_catalog_removal_targets(self) -> None:
+        """카탈로그가 제거를 지시하는 상투구는 완곡으로 세지 않는다.
+
+        세면 규칙이 시킨 편집(D-2·I-1)을 게이트가 되돌리라고 요구하는 상충이 된다.
+        일반 명사·동사로도 흔한 말(견해차·관측 장비·합의에 이르다)도 과탐이라 제외.
+        """
+        for text in (
+            "시사하는 바가 크다",
+            "중요한 요인인 것이다",
+            "양측의 견해차가 컸다",
+            "관측 장비를 새로 들였다",
+            "결국 합의에 이르렀다",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    verify_gates.count_modality(text)[1], 0, f"완곡 과탐: {text}"
+                )
+
     def test_gate_warns_on_modality_loss(self) -> None:
         """main() 통합 판정에서 서법 감소가 exit code에 반영되는가."""
         with tempfile.TemporaryDirectory() as d:
