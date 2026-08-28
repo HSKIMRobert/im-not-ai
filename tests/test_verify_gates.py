@@ -273,6 +273,106 @@ class ModalityGateTests(unittest.TestCase):
         self.assertEqual(verify_gates.count_modality(before)[1], 1)
         self.assertEqual(verify_gates.count_modality(after)[1], 0)
 
+    def test_hedge_inventory_covers_observation_endings(self) -> None:
+        """완곡 사전은 관측·추측 종결을 폭넓게 잡아야 한다.
+
+        구 사전(수 있다·것으로 보인다·가능성이 있다·ㄹ 수도)은 실측 입력의 완곡 7건 중
+        1건만 셌다. 게이트가 서법 보존을 표방하면서 위반을 못 보던 상태라, 유보를 단정으로
+        바꾼 출력이 그대로 통과했다.
+        """
+        for marker in (
+            "낮은 것으로 판단된다",
+            "타당하다고 여겨진다",
+            "충분한 듯하다",
+            "가능성도 배제할 수 없다",
+            "성장률을 2.7%로 전망했다",
+            "개선될 수도 있다",
+            "비용이 늘어날 것으로 추정된다",
+            "개선될 여지가 있다",
+        ):
+            with self.subTest(marker=marker):
+                self.assertGreaterEqual(
+                    verify_gates.count_modality(marker)[1], 1, f"완곡 미검출: {marker}"
+                )
+
+    def test_deontic_inventory_covers_closing_obligation(self) -> None:
+        """당위 사전은 **문단을 끝맺는 당위**를 잡아야 한다 — I-4의 표적이 바로 그것이다.
+
+        구 사전은 "~야 한다"·"필요가 있다"뿐이라 결말 당위를 통째로 놓쳤고,
+        P5가 I-4 위반(당위 삭제·서법 치환)을 검출할 수 없었다.
+        """
+        for marker in (
+            "정부는 공유 플랫폼을 구축해야 한다",
+            "제도의 틀을 다시 짜야 합니다",
+            "규제 정비가 시급하다",
+            "대책이 필요하다",
+            "설계할 필요가 있다",
+            "정비가 바람직하다",
+            "지금 손봐야만 한다",
+            "정비가 요구된다",
+            "규제를 풀지 않으면 안 된다",
+            "우리는 제도를 함께 손질한다고 촉구한다",
+        ):
+            with self.subTest(marker=marker):
+                self.assertGreaterEqual(
+                    verify_gates.count_modality(marker)[0], 1, f"당위 미검출: {marker}"
+                )
+
+    def test_deontic_inventory_excludes_copula_and_demonstratives(self) -> None:
+        """계사 -이야와 지시어 그때·이때는 당위가 아니다."""
+        for text in (
+            "불이야 하고 외쳤다",
+            "내 스타일이야 하지만 별수 없다",
+            "바로 그때다",
+            "이때다 싶어 뛰었다",
+            "그건 다른 일이다",
+            # 아래는 **의도적으로 사전에서 뺀** 갈래다(적대적 검토에서 오검출 확인).
+            # -ㄹ 때다/시점이다: 순수 시점 서술과 형태가 같고, D-6이 승인한 편집을
+            #   서법 소실로 오판하게 만든다.
+            "그 사진은 내가 어릴 때다",
+            "문제가 터진 건 방심했을 때다",
+            "지금은 중요한 시점이다",
+            # 부사형: 완료된 행위의 방식이지 당위가 아니다.
+            "환자를 시급히 이송했다",
+            "공사가 불가피하게 연기됐다",
+            # 맨몸 명사·제3자 발화 보도: 필자의 서법이 아니다.
+            "시민단체의 촉구 집회가 열렸다",
+            "정부에 대책 마련을 촉구했다",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    verify_gates.count_modality(text)[0], 0, f"당위 과탐: {text}"
+                )
+
+    def test_hedge_inventory_excludes_catalog_removal_targets(self) -> None:
+        """카탈로그가 제거를 지시하는 상투구는 완곡으로 세지 않는다.
+
+        세면 규칙이 시킨 편집(D-2·I-1)을 게이트가 되돌리라고 요구하는 상충이 된다.
+        일반 명사·동사로도 흔한 말(견해차·관측 장비·합의에 이르다)도 과탐이라 제외.
+        """
+        for text in (
+            "시사하는 바가 크다",
+            "중요한 요인인 것이다",
+            "양측의 견해차가 컸다",
+            "관측 장비를 새로 들였다",
+            "결국 합의에 이르렀다",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    verify_gates.count_modality(text)[1], 0, f"완곡 과탐: {text}"
+                )
+
+    def test_hedge_inventory_excludes_perception_and_compound_nouns(self) -> None:
+        """맨몸 어휘로 넓히면 지각 동사·복합명사가 걸린다(적대적 검토에서 확인)."""
+        for text in (
+            "창밖으로 남산이 보인다",
+            "성장 가능성 평가 지표를 개편했다",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    verify_gates.count_modality(text)[1], 0, f"완곡 과탐: {text}"
+                )
+
     def test_gate_warns_on_modality_loss(self) -> None:
         """main() 통합 판정에서 서법 감소가 exit code에 반영되는가."""
         with tempfile.TemporaryDirectory() as d:
