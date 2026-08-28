@@ -96,6 +96,29 @@ class RestoreModalityTests(unittest.TestCase):
         self.assertTrue(skipped, "조용히 탈락하면 손실 추적이 불가능하다")
         self.assertIn("유사도", skipped[0]["reason"])
 
+    def test_restored_sentence_drops_cliche_the_rewriter_removed(self) -> None:
+        """서법은 되찾되, 윤문이 걷어낸 상투구까지 되살리지는 않는다.
+
+        회귀 방지: 복원기가 "그러므로, 지금이야말로 ~할 때입니다."를 통째로 되살려
+        D-1 결산 피벗과 D-6 결말 껍데기가 부활했다(같은 픽스처 3회 중 2회 재현).
+        """
+        before = "그러므로, 지금이야말로 변화를 추구해야 할 때입니다."
+        after = "지금이 변화를 추구할 시점입니다."
+        out, restored, _ = rm.restore(before, after)
+        self.assertEqual(len(restored), 1)
+        self.assertIn("추구해야", out, "서법은 되돌아와야 한다")
+        self.assertNotIn("그러므로", out)
+        self.assertNotIn("지금이야말로", out)
+
+    def test_keeps_cliche_the_rewriter_kept(self) -> None:
+        """윤문본이 남겨둔 상투구는 실행자의 판단이므로 건드리지 않는다."""
+        before = "따라서 정부는 즉시 대응해야 한다."
+        after = "따라서 정부가 즉시 대응한다."
+        out, restored, _ = rm.restore(before, after)
+        self.assertEqual(len(restored), 1)
+        self.assertIn("따라서", out)
+        self.assertIn("대응해야 한다", out)
+
     def test_ignores_unrelated_sentence_pairs(self) -> None:
         """유사도가 낮은 짝은 정렬 아티팩트 — 서법 판정 대상이 아니다."""
         before = "규제안의 영향은 아직 단정하기 어렵다."

@@ -127,6 +127,33 @@ def align(before: list[str], after: list[str]) -> list[tuple[str, str]]:
     return pairs
 
 
+# 되돌릴 원문 문장에서 **카탈로그가 삭제를 지시한 상투구**는 다시 심지 않는다.
+#
+# 왜: 서법을 되돌리면 그 문장의 AI 티도 함께 돌아온다. 실측에서 복원기가
+# "그러므로, 지금이야말로 변화를 추구해야 할 때입니다."를 통째로 되살려,
+# 윤문이 이미 걷어낸 D-1 결산 피벗과 D-6 결말 껍데기가 부활했다
+# (같은 픽스처에서 결산 피벗 잔존이 3회 중 2회). 서법만 되찾고 상투구는 두고 온다.
+#
+# 조건이 둘 다 맞을 때만 벗긴다: ① 카탈로그가 삭제를 지시한 목록에 있고
+# ② **윤문본이 실제로 그것을 걷어냈다**(즉 실행자의 판단을 존중한다).
+# 벗겨서 서법 표지가 사라지면 벗기지 않는다 — 복원의 목적이 서법이기 때문이다.
+CLICHE_STRIP = [
+    re.compile(r"^(?:그러므로|따라서|결론적으로|요약하면|정리하면|이를\s*통해)[,\s]+"),
+    re.compile(r"지금이야말로\s*"),
+    re.compile(r"바야흐로\s*"),
+]
+
+
+def _strip_restored_cliche(before: str, after: str) -> str:
+    out = before
+    for rx in CLICHE_STRIP:
+        if rx.search(out) and not rx.search(after):
+            stripped = rx.sub("", out, count=1).strip()
+            if any(r.search(stripped) for r in MODAL.values()):
+                out = stripped
+    return out
+
+
 def find_losses(before: str, after: str) -> list[dict]:
     """원문 문장의 서법이 짝 문장에서 사라진 경우를 찾는다.
 
@@ -214,8 +241,9 @@ def restore(before: str, after: str) -> tuple[str, list[dict], list[dict]]:
                 }
             )
             continue
-        result = result.replace(loss["after"], loss["before"], 1)
-        restored.append(loss)
+        replacement = _strip_restored_cliche(loss["before"], loss["after"])
+        result = result.replace(loss["after"], replacement, 1)
+        restored.append({**loss, "restored_as": replacement})
     return result, restored, skipped
 
 
