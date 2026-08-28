@@ -40,6 +40,7 @@ import json
 import os
 import re
 import sys
+from collections import Counter
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, ".."))
@@ -54,7 +55,11 @@ from verify_gates import DEONTIC_RE, HEDGE_RE  # noqa: E402  (사전은 게이�
 MODAL = {"당위": DEONTIC_RE, "추측": HEDGE_RE}
 
 # 짝 문장이 "같은 문장의 다른 표현"인지 판정하는 하한. 정렬 아티팩트(엉뚱한 짝)를 거른다.
-MIN_PAIR_SIM = 0.3
+# 단위는 어절이 아니라 **문자 바이그램**이다 — 한국어는 조사·어미가 어간에 붙어 어절로 세면
+# 가벼운 윤문도 "다른 어절"이 돼 유사도가 과소 계상된다. 실측: 같은 문장의 정상 윤문이
+# 어절 0.26 / 바이그램 0.48, 무관한 문장은 양쪽 다 0.00. 어절 기준 0.3 문턱에서는 진짜
+# 서법 손실이 "정렬 아티팩트"로 걸러져 복원되지 않았다.
+MIN_PAIR_SIM = 0.35
 # 병합 판정 — 두 기준을 **모두** 만족할 때만 병합으로 본다.
 #
 # 처음에는 "원문 문장에 없던 내용어 2개 이상"만 봤는데, 실측에서 정상 윤문이 무더기로
@@ -73,12 +78,18 @@ def _tokens(s: str) -> set[str]:
     return {t for t in (_WORD_RE.sub("", w) for w in s.split()) if t}
 
 
-def _jaccard(a: str, b: str) -> float:
-    A, B = _tokens(a), _tokens(b)
+def _bigrams(s: str) -> "Counter[str]":
+    c = "".join(ch for ch in s if ch.isalnum())
+    return Counter(c[i : i + 2] for i in range(len(c) - 1))
+
+
+def _sim(a: str, b: str) -> float:
+    """문자 바이그램 Dice 유사도(0~1). 조사·어미 변화에 둔감하다."""
+    A, B = _bigrams(a), _bigrams(b)
     if not A or not B:
         return 0.0
-    inter = len(A & B)
-    return inter / (len(A) + len(B) - inter)
+    inter = sum((A & B).values())
+    return 2 * inter / (sum(A.values()) + sum(B.values()))
 
 
 def align(before: list[str], after: list[str]) -> list[tuple[str, str]]:
@@ -93,7 +104,7 @@ def align(before: list[str], after: list[str]) -> list[tuple[str, str]]:
     for i in range(1, n + 1):
         for j in range(1, m + 1):
             score[i][j] = max(
-                score[i - 1][j - 1] + _jaccard(before[i - 1], after[j - 1]),
+                score[i - 1][j - 1] + _sim(before[i - 1], after[j - 1]),
                 score[i - 1][j] + gap,
                 score[i][j - 1] + gap,
             )
@@ -101,7 +112,7 @@ def align(before: list[str], after: list[str]) -> list[tuple[str, str]]:
     i, j = n, m
     while i > 0 or j > 0:
         if i > 0 and j > 0 and abs(
-            score[i][j] - (score[i - 1][j - 1] + _jaccard(before[i - 1], after[j - 1]))
+            score[i][j] - (score[i - 1][j - 1] + _sim(before[i - 1], after[j - 1]))
         ) < 1e-9:
             pairs.append((before[i - 1], after[j - 1]))
             i, j = i - 1, j - 1
@@ -128,7 +139,7 @@ def find_losses(before: str, after: str) -> list[dict]:
         # 삭제(짝 없음)는 서법 문제가 아니라 내용 소실 — 다른 축이 본다.
         if not b or not a:
             continue
-        if _jaccard(b, a) < MIN_PAIR_SIM:
+        if _sim(b, a) < MIN_PAIR_SIM:
             continue
         neighbor_gap = any(
             pairs[j][0].strip() and not pairs[j][1].strip()

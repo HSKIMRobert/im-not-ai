@@ -294,6 +294,43 @@ class ModalityGateTests(unittest.TestCase):
                     verify_gates.count_modality(marker)[1], 1, f"완곡 미검출: {marker}"
                 )
 
+    def test_deontic_inventory_covers_closing_obligation(self) -> None:
+        """당위 사전은 **문단을 끝맺는 당위**를 잡아야 한다 — I-4의 표적이 바로 그것이다.
+
+        구 사전은 "~야 한다"·"필요가 있다"뿐이라 결말 당위를 통째로 놓쳤고,
+        P5가 I-4 위반(당위 삭제·서법 치환)을 검출할 수 없었다.
+        """
+        for marker in (
+            "지금이야말로 제도의 틀을 다시 짤 때다",
+            "이제 나설 때입니다",
+            "제도의 틀을 다시 짤 때가 왔다",
+            "제도를 손볼 시점이다",
+            "규제 정비가 시급하다",
+            "대책이 필요하다",
+            "정비가 바람직하다",
+            "대응이 불가피하다",
+            "시급히 손봐야만 한다",
+            "대책 마련을 촉구했다",
+        ):
+            with self.subTest(marker=marker):
+                self.assertGreaterEqual(
+                    verify_gates.count_modality(marker)[0], 1, f"당위 미검출: {marker}"
+                )
+
+    def test_deontic_inventory_excludes_copula_and_demonstratives(self) -> None:
+        """계사 -이야와 지시어 그때·이때는 당위가 아니다."""
+        for text in (
+            "불이야 하고 외쳤다",
+            "내 스타일이야 하지만 별수 없다",
+            "바로 그때다",
+            "이때다 싶어 뛰었다",
+            "그건 다른 일이다",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    verify_gates.count_modality(text)[0], 0, f"당위 과탐: {text}"
+                )
+
     def test_hedge_inventory_excludes_catalog_removal_targets(self) -> None:
         """카탈로그가 제거를 지시하는 상투구는 완곡으로 세지 않는다.
 
