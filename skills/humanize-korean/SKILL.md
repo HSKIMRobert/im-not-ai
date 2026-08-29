@@ -174,7 +174,15 @@ python3 ${SKILL_ROOT}/scripts/restore_modality.py \
     --before _workspace/{run_id}/01_input.txt \
     --after  _workspace/{run_id}/final.md \
     --out    _workspace/{run_id}/final.md
+python3 ${SKILL_ROOT}/scripts/strip_injected_commas.py \
+    --before _workspace/{run_id}/01_input.txt \
+    --after  _workspace/{run_id}/final.md \
+    --out    _workspace/{run_id}/final.md
 ```
+
+두 번째 명령은 **C-11 역주입 제거** — 윤문이 새로 쓴 문장에서만 연결어미 뒤
+쉼표를 걷어낸다(원문에 있던 문장은 불가침 — 필자 쉼표 보호). light 실측에서
+윤문 후 연결어미 쉼표가 원문보다 늘어난 문서가 16/28이었다. LLM 콜 0회.
 
 - **왜 필요한가**: 규칙(A-10·G-1)을 보존 쪽으로 고쳐도 프롬프트는 확률적이라 계속 샌다.
   스킬을 실제로 돌린 A/B에서 규칙 양쪽 버전 모두 "낮은 것으로 판단된다" → "낮은 수치다"
