@@ -65,8 +65,13 @@ def _strip_in_sentence(sent: str) -> tuple[str, int]:
     return "".join(out), removed
 
 
-def strip_injected(before: str, after: str) -> tuple[str, dict]:
-    originals = {_norm(s) for s in _sentences(before)}
+def strip_injected(before: str, after: str, all_sentences: bool = False) -> tuple[str, dict]:
+    """all_sentences=False: 윤문이 새로 쓴 문장만(기본 — 필자 쉼표 보호).
+    all_sentences=True: 전 문장(따옴표 안 제외) — 진단이 문서를 AI 산출물로
+    판정하고 C-11을 티로 지목한 standard/heavy 경로 전용. 사람 532편 실측에서
+    연결어미 쉼표는 사람 중앙값이 문장의 15%라 밀도만으로는 사람/주입을 못
+    가른다 — 그래서 이 모드는 밀도가 아니라 경로 판정(진단)에만 묶는다."""
+    originals = set() if all_sentences else {_norm(s) for s in _sentences(before)}
     total_removed = 0
     touched = 0
     parts: list[str] = []
@@ -94,6 +99,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--after", required=True, help="윤문본 파일")
     ap.add_argument("--out", help="결과를 쓸 파일(없으면 stdout)")
     ap.add_argument("--json", action="store_true", help="리포트를 stderr에 JSON으로")
+    ap.add_argument(
+        "--all", action="store_true",
+        help="전 문장 제거(따옴표 안 제외) — 진단이 C-11을 지목한 standard/heavy 경로 전용",
+    )
     args = ap.parse_args(argv)
 
     with open(args.before, encoding="utf-8") as f:
@@ -101,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     with open(args.after, encoding="utf-8") as f:
         after = f.read()
 
-    fixed, report = strip_injected(before, after)
+    fixed, report = strip_injected(before, after, all_sentences=args.all)
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:
