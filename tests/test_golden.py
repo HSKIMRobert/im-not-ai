@@ -210,6 +210,29 @@ class StructureCheckTests(unittest.TestCase):
         out = '"결과를 신중히 해석해야 한다"는 것이 그의 말이다.'
         self.assertEqual(checks.check_quotes(orig, out), [])
 
+    def test_rhetorical_self_question_editable(self) -> None:
+        """필자의 수사적 자문 인용(발화 표지 없음)은 윤문 대상이다 (v2.6.2 정책).
+
+        저자 정답지가 자문 인용 안("무엇을 쥐고 → 가지고")을 직접 고쳤다 —
+        이 구분이 없으면 어떤 실행자도 정답 수준에 도달할 수 없다.
+        """
+        orig = '물어야 할 질문은 "AI가 일자리를 없애는가"다.'
+        out = '물어야 할 질문은 "AI가 생애 첫 일자리를 없애는가"다.'
+        self.assertEqual(checks.check_quotes(orig, out), [])
+
+    def test_attributed_quote_still_inviolable(self) -> None:
+        """발화 표지가 붙은 인용은 여전히 불변 — 자문 정책이 발화 보호를 약화하면 안 된다."""
+        orig = '보고서에 따르면 "성장세가 꺾일 수 있다"고 한다.'
+        out = '보고서에 따르면 "성장세가 둔화할 수 있다"고 한다.'
+        codes = {x.code for x in checks.check_quotes(orig, out)}
+        self.assertIn("quote_altered", codes)
+
+    def test_neighbor_speech_verb_does_not_protect(self) -> None:
+        """이웃 문장의 발화 동사가 자문 인용을 오보호하면 안 된다 (창은 문장 경계에서 절단)."""
+        orig = '질문은 "무엇을 가질 것인가"다. 김 교수는 "판단이 이르다"고 말했다.'
+        out = '질문은 "무엇을 지킬 것인가"다. 김 교수는 "판단이 이르다"고 말했다.'
+        self.assertEqual(checks.check_quotes(orig, out), [])
+
 
 class NumberCheckTests(unittest.TestCase):
     """수치 주입/삭제 방향성 게이트 — check_numbers."""
