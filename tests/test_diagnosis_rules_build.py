@@ -20,8 +20,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.join(HERE, "..", "scripts")
 
 # 부피 게이트: taxonomy(74.8KB) 대비 대폭 절감이 이 파일의 존재 이유.
-# 한글 UTF-8 3바이트 특성상 패턴 × 2줄의 물리 하한이 있어 상한 14KB.
-MAX_BYTES = 14 * 1024
+# 한글 UTF-8 3바이트 특성상 패턴 × 2줄의 물리 하한이 있음. 상한은 패턴 수 증가에 맞춰 조정.
+MAX_BYTES = 18 * 1024  # v2.6에서 81패턴(+8)로 늘어 상향. 패턴당 ~190B 하한 기준 여유 포함.
 MIN_BYTES = 5 * 1024  # 지나치게 작으면 내용 소실 의심
 
 
