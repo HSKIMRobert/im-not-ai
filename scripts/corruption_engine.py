@@ -124,11 +124,13 @@ def _inj_comma_after_connective(t: str, rng: random.Random) -> str | None:
 
 def _inj_cleft(t: str, rng: random.Random) -> str | None:
     """D-8 분열문: '(N)이/가 필요하다' → '필요한 것은 (N)이다'."""
-    cands = list(re.finditer(r"([가-힣]{2,8})[이가]\s*필요하다", t))
+    cands = [(m, "필요한 것은 {}이다") for m in re.finditer(r"([가-힣]{2,8})[이가]\s*필요하다", t)]
+    cands += [(m, "중요한 것은 {}이다") for m in re.finditer(r"([가-힣]{2,8})[이가]\s*중요하다", t)]
+    cands += [(m, "핵심은 {}이다") for m in re.finditer(r"([가-힣]{2,8})[이가]\s*핵심이다", t)]
     if not cands:
         return None
-    m = rng.choice(cands)
-    return t[: m.start()] + f"필요한 것은 {m.group(1)}이다" + t[m.end():]
+    m, tmpl = rng.choice(cands)
+    return t[: m.start()] + tmpl.format(m.group(1)) + t[m.end():]
 
 
 def _inj_task_slot(t: str, rng: random.Random) -> str | None:
@@ -158,7 +160,12 @@ def _inj_progressive_passive(t: str, rng: random.Random) -> str | None:
     """A-20 피동 진행: 사전 쌍 치환 — '심해졌다'→'심화되고 있다' 류."""
     PAIRS = [("심해졌다", "심화되고 있다"), ("줄었다", "줄어들고 있다"),
              ("늘었다", "늘어나고 있다"), ("커졌다", "커지고 있다"),
-             ("바뀌었다", "변화하고 있다"), ("나빠졌다", "악화되고 있다")]
+             ("바뀌었다", "변화하고 있다"), ("나빠졌다", "악화되고 있다"),
+             ("늘어났다", "증가하고 있다"), ("줄어들었다", "감소하고 있다"),
+             ("높아졌다", "높아지고 있다"), ("낮아졌다", "낮아지고 있다"),
+             ("확대됐다", "확대되고 있다"), ("개선됐다", "개선되고 있다"),
+             ("확산했다", "확산되고 있다"), ("발전했다", "발전하고 있다"),
+             ("성장했다", "성장하고 있다"), ("변했다", "변화하고 있다")]
     hits = [(a, b) for a, b in PAIRS if a in t]
     if not hits:
         return None
@@ -170,7 +177,11 @@ def _inj_generic_verb(t: str, rng: random.Random) -> str | None:
     """F-7 범용동사 수렴: 구체 동사 → 확대/강화/개선/구축."""
     PAIRS = [("늘려야", "확대해야"), ("키워야", "강화해야"), ("고쳐야", "개선해야"),
              ("만들어야", "구축해야"), ("넓혀야", "확대해야"), ("다듬어야", "개선해야"),
-             ("늘리고", "확대하고"), ("고치고", "개선하고")]
+             ("늘리고", "확대하고"), ("고치고", "개선하고"),
+             ("늘렸다", "확대했다"), ("키웠다", "강화했다"), ("고쳤다", "개선했다"),
+             ("만들었다", "구축했다"), ("세웠다", "수립했다"), ("다졌다", "강화했다"),
+             ("늘린다", "확대한다"), ("키운다", "강화한다"), ("세운다", "수립한다"),
+             ("마련했다", "구축했다"), ("갖췄다", "확보했다"), ("얻었다", "확보했다")]
     hits = [(a, b) for a, b in PAIRS if a in t]
     if not hits:
         return None
@@ -183,7 +194,11 @@ def _inj_metaphor(t: str, rng: random.Random) -> str | None:
     PAIRS = [("점유율을 뺏", "시장을 잠식하"), ("점유율을 줄이", "시장을 잠식하"),
              ("몫을 줄이", "몫을 잠식하"), ("비용을 치르게 된다", "청구서를 받게 된다"),
              ("부담이 커진다", "부담이 어깨를 짓누른다"), ("자리를 잡", "뿌리를 내리"),
-             ("계획", "청사진")]
+             ("계획을", "청사진을"), ("기반을 닦", "주춧돌을 놓"),
+             ("경고가 나온다", "적신호가 켜진다"), ("위험 신호가", "경고등이"),
+             ("시작을 알렸다", "신호탄을 쏘아 올렸다"), ("기회를 잡", "기회를 움켜쥐"),
+             ("성과를 나눈다", "과실을 나눈다"), ("이익을 나눈다", "과실을 나눈다"),
+             ("영역을 넓히", "영토를 넓히"), ("자리 잡았다", "뿌리내렸다")]
     hits = [(a, b) for a, b in PAIRS if a in t]
     if not hits:
         return None
@@ -193,15 +208,21 @@ def _inj_metaphor(t: str, rng: random.Random) -> str | None:
 
 def _inj_negation_parallel(t: str, rng: random.Random) -> str | None:
     """C-8/C-14 부정 대구: 'A보다 B가 중요하다' → '중요한 것은 A가 아니라 B다'."""
-    m = re.search(r"([가-힣]{2,8})보다\s*([가-힣]{2,8})[이가]\s*중요하다", t)
-    if not m:
-        return None
-    return t[: m.start()] + f"중요한 것은 {m.group(1)}이 아니라 {m.group(2)}이다" + t[m.end():]
+    m = re.search(r"([가-힣]{2,8})보다\s*([가-힣]{2,8})[이가]\s*(중요하다|필요하다|먼저다|크다)", t)
+    if m:
+        head = {"중요하다": "중요한 것은", "필요하다": "필요한 것은",
+                "먼저다": "먼저인 것은", "크다": "큰 것은"}[m.group(3)]
+        return t[: m.start()] + f"{head} {m.group(1)}이 아니라 {m.group(2)}이다" + t[m.end():]
+    # "A 대신 B를" → "A가 아니라 B를" (대조 강조로의 전이 — 오염 측이므로 허용)
+    m = re.search(r"([가-힣]{2,8})\s*대신\s*([가-힣]{2,8})[을를]", t)
+    if m:
+        return t[: m.start()] + f"{m.group(1)}이 아니라 {m.group(2)}를" + t[m.end():]
+    return None
 
 
 def _inj_reason_inversion(t: str, rng: random.Random) -> str | None:
     """D-10 역방향 결산: '그래서 (S)다.' → '(S)인 이유다.' — 안전한 좁은 형태만."""
-    m = re.search(r"그래서\s+([가-힣][^.!?\n]{6,60}[가-힣])다\.", t)
+    m = re.search(r"(?:그래서|그렇기에|이\s*때문에)\s+([가-힣][^.!?\n]{6,60}[가-힣])다\.", t)
     if not m:
         return None
     return t[: m.start()] + f"{m.group(1)}다는 이유다." + t[m.end():]
