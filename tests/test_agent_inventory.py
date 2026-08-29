@@ -69,14 +69,27 @@ class AgentInventoryTests(unittest.TestCase):
     def test_skill_does_not_reference_missing_agent_dir(self) -> None:
         """이 레포는 에이전트를 플러그인 컨벤션대로 루트 `agents/`에 둔다.
 
-        레포 안에 `.claude/agents/`는 없으므로, 그 경로를 안내하면 독자가
-        빈 디렉토리를 찾게 된다. 전역 설치 대상인 `~/.claude/agents/`는
-        실재하는 별개 경로이므로 검사에서 제외한다.
+        SSOT는 루트 `agents/` 하나여야 한다. 로컬 세션의 로더 관례 대응용으로
+        `.claude/agents/`에 심링크를 두는 것은 허용하되(git 미추적), 실물
+        파일이 생겨 두 벌이 갈라지는 것은 막는다. 전역 설치 대상인
+        `~/.claude/agents/`는 실재하는 별개 경로이므로 검사에서 제외한다.
         """
-        self.assertFalse(
-            os.path.isdir(os.path.join(_ROOT, ".claude", "agents")),
-            "`.claude/agents/`가 생겼다면 이 테스트와 SKILL.md 서술을 함께 갱신할 것",
-        )
+        local_dir = os.path.join(_ROOT, ".claude", "agents")
+        if os.path.isdir(local_dir):
+            agents_root = os.path.realpath(os.path.join(_ROOT, "agents"))
+            for name in sorted(os.listdir(local_dir)):
+                path = os.path.join(local_dir, name)
+                with self.subTest(entry=name):
+                    self.assertTrue(
+                        os.path.islink(path),
+                        f"`.claude/agents/{name}` 실물 발견 — SSOT는 루트 agents/. "
+                        "심링크로 바꾸거나 루트로 옮길 것",
+                    )
+                    self.assertTrue(
+                        os.path.realpath(path).startswith(agents_root + os.sep),
+                        f"`.claude/agents/{name}` 심링크가 루트 agents/ 밖을 가리킴: "
+                        f"{os.path.realpath(path)}",
+                    )
         # assertNotIn은 실패 시 haystack(SKILL.md 전문)을 통째로 덤프하므로
         # 줄 번호만 모아 보고한다.
         hits = [

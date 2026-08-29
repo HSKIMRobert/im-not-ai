@@ -22,3 +22,6 @@ _workspace_prev/
 # Python
 __pycache__/
 *.pyc
+
+# Local Claude Code loader convenience (symlinks into agents/)
+.claude/
