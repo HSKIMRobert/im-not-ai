@@ -153,6 +153,36 @@ class MetricsTests(unittest.TestCase):
         result = metrics.compute_all(text, genre="essay", baseline_path=BASELINE_PATH)
         self.assertEqual(result["risk_band"], "low")
 
+    def test_comma_family_alone_cannot_reach_high(self) -> None:
+        # Pebblous 티어다운(2026-08) 반례 — 2020년(pre-ChatGPT) 사람 에세이가
+        # 필자의 쉼표 습관(C-11 계열 z=+10)만으로 6/6 high 판정을 받았다.
+        # 쉼표 계열은 3점 상한이라 단독으로는 low 를 넘을 수 없어야 한다.
+        z = {
+            "comma_inclusion_rate": 10.0,
+            "ending_comma_rate": 10.0,
+            "comma_segment_length": 10.0,
+            "lexical_diversity": 0.0,
+            "hanja_nominalizer_density": 0.0,
+        }
+        band, score = metrics._classify_risk(z, {})
+        self.assertLessEqual(score, 3)
+        self.assertEqual(band, "low")
+
+    def test_high_requires_two_independent_families(self) -> None:
+        # high 는 독립 계열 2개 이상 동시 발화 시에만 — 쉼표 상한 3점에
+        # 수사·어휘 계열이 더해져야 6점에 닿는다.
+        z = {
+            "comma_inclusion_rate": 10.0,
+            "ending_comma_rate": 10.0,
+            "comma_segment_length": 10.0,
+            "lexical_diversity": 0.0,
+            "hanja_nominalizer_density": 2.0,
+        }
+        hits = {"conclusion_pivot_count": 3, "safe_balance_count": 2}
+        band, score = metrics._classify_risk(z, hits)
+        self.assertEqual(band, "high")
+        self.assertEqual(score, 6)
+
     # ------------------------------------------------------------------
     # CLI smoke
     # ------------------------------------------------------------------
