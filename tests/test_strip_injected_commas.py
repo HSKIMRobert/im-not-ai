@@ -54,6 +54,19 @@ class StripInjectedCommasTests(unittest.TestCase):
         self.assertEqual(out, after)
         self.assertEqual(rep["commas_removed"], 0)
 
+    def test_all_mode_strips_kept_sentences(self) -> None:
+        # --all: 진단이 C-11을 지목한 경로 전용 — 원문 그대로인 문장도 제거.
+        keep = "데이터를 정제하고, 모델을 학습시킨다."
+        out, rep = strip_injected(keep, keep, all_sentences=True)
+        self.assertEqual(out, "데이터를 정제하고 모델을 학습시킨다.")
+        self.assertEqual(rep["commas_removed"], 1)
+
+    def test_all_mode_quote_still_protected(self) -> None:
+        t = "그는 “먹고, 갔다”고 말하면서, 웃었다."
+        out, rep = strip_injected(t, t, all_sentences=True)
+        self.assertIn("먹고,", out)
+        self.assertNotIn("말하면서,", out)
+
     def test_noop_identity(self) -> None:
         before = "그대로다. 바뀐 게 없다."
         out, rep = strip_injected(before, before)
