@@ -183,6 +183,25 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(band, "high")
         self.assertEqual(score, 6)
 
+    def test_column_and_report_genre_cells_exist(self) -> None:
+        # SKILL.md 장르 키(column/report)가 baseline 셀 없이 essay로 폴백되던
+        # 구멍(2026-08-29 FPR 실측에서 확인) — 실측 셀 추가 후 폴백 경고가 없어야 한다.
+        text = "그는 학교에 가고, 밥을 먹었다. 결과를 검토했다."
+        for genre in ("column", "report"):
+            with self.subTest(genre=genre):
+                result = metrics.compute_all(text, genre=genre, baseline_path=BASELINE_PATH)
+                self.assertNotIn("warning", result, f"{genre} 셀이 essay로 폴백됨")
+
+    def test_inverted_comma_metrics_disabled_per_genre(self) -> None:
+        # 실측에서 human이 essay-AI 극을 초과(역전)한 지표는 해당 장르에서
+        # 판별 불가 — z가 None이어야 한다.
+        text = "그는 학교에 가고, 밥을 먹고, 잠을 잤다. 보고서를 썼다."
+        col = metrics.compute_all(text, genre="column", baseline_path=BASELINE_PATH)
+        self.assertIsNone(col["z_scores"]["ending_comma_rate"])
+        rep = metrics.compute_all(text, genre="report", baseline_path=BASELINE_PATH)
+        self.assertIsNone(rep["z_scores"]["ending_comma_rate"])
+        self.assertIsNone(rep["z_scores"]["comma_segment_length"])
+
     # ------------------------------------------------------------------
     # CLI smoke
     # ------------------------------------------------------------------
