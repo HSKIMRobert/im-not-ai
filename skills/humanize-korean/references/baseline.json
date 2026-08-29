@@ -137,11 +137,10 @@
   "report": {
    "_source": "user-corpus-2026-08-29: 위키 설명문 521청크 실측 (설명문·정보성 산문 프록시). AI 극은 global(KatFish) 상속",
    "comma_inclusion_rate": {
-    "human": 50.25,
-    "ai": 61.03,
-    "ratio": 1.21,
+    "human": null,
+    "ai": null,
     "unit": "percent",
-    "note": "인간 sd 18.3으로 극간 분리 약함 — 단독 증거 금지(가족 캡이 흡수)"
+    "note": "설명문 인간 실측 50.25±18.32 vs essay-AI 극 61.03 — 극간 거리(5.4)가 인간 내 분산(18.3)보다 작아 판별 불가. 사람 521청크 중 38%가 z>1 헛발화(진단 프롬프트 오염) → 비활성. 장르 매칭 AI 코퍼스 확보 시 재측정"
    },
    "comma_usage_rate": {
     "human": 0.81,

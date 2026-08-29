@@ -201,6 +201,8 @@ class MetricsTests(unittest.TestCase):
         rep = metrics.compute_all(text, genre="report", baseline_path=BASELINE_PATH)
         self.assertIsNone(rep["z_scores"]["ending_comma_rate"])
         self.assertIsNone(rep["z_scores"]["comma_segment_length"])
+        # comma_inclusion_rate: 극간 거리 5.4 < 인간 내 분산 18.3 — 판별 불가 비활성
+        self.assertIsNone(rep["z_scores"]["comma_inclusion_rate"])
 
     # ------------------------------------------------------------------
     # CLI smoke
